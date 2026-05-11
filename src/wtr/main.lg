@@ -1,0 +1,13 @@
+(ns wtr.main
+  (:require [wtr.create :as create]
+            [wtr.cmds.switch :as switch]))
+
+(defn- main []
+  (create/create "my-new-worktree")
+  (switch/switch "my-existing-worktree")
+  (prn "Hello, WTR!"))
+
+; Top-level forms run during AOT compilation too. Guard so `lg -b` doesn't
+; execute the CLI while bundling.
+(when-not *compiling-aot* 
+  (main))
