@@ -1,9 +1,18 @@
 (ns wtr.commands
   (:require [tiny-cli.core :as cli]
             [os :as os]
-            [clojure.string :as str]))
+            [wtr.git :as git]
+            [wtr.format :as fmt]))
 
 (defn list
   "List worktrees."
   [context]
-  (prn "List!"))
+  (try
+    (let [wts (git/worktrees)
+          cwd (os/cwd)]
+      (println (fmt/render-list wts cwd)))
+    (catch e :default
+      (let [stderr (or (:stderr (ex-data e)) (str e))]
+        (binding [*out* *err*]
+          (print stderr)))
+      (os/exit 1))))

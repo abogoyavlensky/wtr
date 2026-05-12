@@ -1,0 +1,51 @@
+(ns wtr.format
+  (:require [clojure.string :as str]))
+
+(defn- relativize [path base]
+  (if (str/starts-with? path (str base "/"))
+    (subs path (inc (count base)))
+    path))
+
+(defn- short-sha [sha]
+  (if sha (subs sha 0 7) "-------"))
+
+(defn- branch-label [{:keys [branch detached? bare? locked? prunable?]}]
+  (let [base (cond
+               bare? "(bare)"
+               detached? "(detached)"
+               branch (str/replace branch #"^refs/heads/" "")
+               :else "")
+        suffix (cond-> ""
+                 locked? (str " [locked]")
+                 prunable? (str " [prunable]"))]
+    (str base suffix)))
+
+(defn- is-current? [wt-path cwd]
+  (or (= cwd wt-path)
+      (str/starts-with? cwd (str wt-path "/"))))
+
+(defn- format-row [wt cwd base-path]
+  (let [marker (if (is-current? (:path wt) cwd) "*" "  ")
+        relpath (relativize (:path wt) base-path)
+        sha (short-sha (:head wt))
+        label (branch-label wt)]
+    [marker relpath sha label]))
+
+(defn- pad-column [rows col-idx]
+  (let [width (apply max (map #(count (nth % col-idx)) rows))]
+    (mapv #(update % col-idx (fn [s] (str s (apply str (repeat (- width (count s)) " ")))))
+          rows)))
+
+(defn render-list
+  "Returns the formatted multi-line string for `wtr list`.
+   `wts` is the vector from wtr.git/worktrees; `cwd` is os/cwd."
+  [wts cwd]
+  (if (empty? wts)
+    "(no worktrees)"
+    (let [base-path (let [main-path (:path (first wts))]
+                      (str/replace main-path #"/[^/]+$" ""))
+          rows (mapv #(format-row % cwd base-path) wts)
+          padded (-> rows
+                     (pad-column 1)
+                     (pad-column 2))]
+      (str/join "\n" (map #(str/join "  " %) padded)))))

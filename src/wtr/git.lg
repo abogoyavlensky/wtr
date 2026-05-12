@@ -1,0 +1,35 @@
+(ns wtr.git
+  (:require [os :as os]
+            [clojure.string :as str]))
+
+(defn- parse-record [lines]
+  (reduce
+   (fn [m line]
+     (cond
+       (str/starts-with? line "worktree ") (assoc m :path (subs line 9))
+       (str/starts-with? line "HEAD ") (assoc m :head (subs line 5))
+       (str/starts-with? line "branch ") (assoc m :branch (subs line 7))
+       (= line "detached") (assoc m :detached? true)
+       (= line "bare") (assoc m :bare? true)
+       (str/starts-with? line "locked") (assoc m :locked? true)
+       (str/starts-with? line "prunable") (assoc m :prunable? true)
+       :else m))
+   {:detached? false :bare? false :locked? false :prunable? false}
+   lines))
+
+(defn worktrees
+  "Run `git worktree list --porcelain -z`, return a vector of maps:
+   [{:path \"/abs/path\" :head \"sha\" :branch \"refs/heads/foo\"
+     :detached? false :bare? false :locked? false :prunable? false}]
+   First entry is always the main worktree.
+   Throws ex-info on non-zero git exit; caller prints + exits."
+  []
+  (let [result (os/sh "git" "worktree" "list" "--porcelain" "-z")]
+    (when-not (zero? (:exit result))
+      (throw (ex-info "git worktree list failed" {:stderr (:err result)})))
+    (let [output (:out result)
+          records (str/split output #"\x00\x00")]
+      (mapv (fn [rec]
+              (let [lines (str/split rec #"\x00")]
+                (parse-record lines)))
+            (remove str/blank? records)))))
