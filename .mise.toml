@@ -1,7 +1,7 @@
 # .mise.toml
 [tools]
 lg = "1.7.2"
-lgx = "0.1.0-alpha1"
+lgx = "0.1.0-alpha2"
 
 [tool_alias]
 lg = "github:nooga/let-go"

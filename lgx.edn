@@ -1,1 +1,3 @@
-{:paths ["src"]}
+{:paths ["src"]
+ :deps {tiny-cli {:git/url "https://github.com/abogoyavlensky/tiny-cli"
+                  :git/sha "605e2257ce9197dde2020034f8deee59994e4e6b"}}}
