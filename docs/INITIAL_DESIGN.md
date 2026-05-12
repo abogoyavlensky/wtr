@@ -172,9 +172,6 @@ wtr create <name>  # creates a new worktree with the given name
 wtr switch <name|branch>  # switches to the given worktree or branch
 wtr cd <name>  # changes directory to the given worktree
 wtr run <name> <command...>  # runs the given command in the given existing worktree
-
-wtr help  # shows this help message
-wtr version  # shows the version of wtr
 ```
 
 ### Example usage
