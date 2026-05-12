@@ -1,0 +1,9 @@
+(ns wtr.commands
+  (:require [tiny-cli.core :as cli]
+            [os :as os]
+            [clojure.string :as str]))
+
+(defn list
+  "List worktrees."
+  [context]
+  (prn "List!"))

@@ -2,7 +2,9 @@
 [tools]
 lg = "1.7.2"
 lgx = "0.1.0-alpha2"
+cljfmt = "0.16.4"
 
 [tool_alias]
 lg = "github:nooga/let-go"
 lgx = "github:abogoyavlensky/lgx"
+cljfmt = "asdf:https://github.com/b-social/asdf-cljfmt"
