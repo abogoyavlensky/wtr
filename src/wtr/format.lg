@@ -24,16 +24,19 @@
   (or (= cwd wt-path)
       (str/starts-with? cwd (str wt-path "/"))))
 
-(defn- format-row [wt cwd base-path]
-  (let [marker (if (is-current? (:path wt) cwd) "*" "  ")
-        relpath (relativize (:path wt) base-path)
+(defn- format-row [wt cwd]
+  (let [marker (if (is-current? (:path wt) cwd) "\u001b[32m*\u001b[0m" " ")
+        path (:path wt)
         sha (short-sha (:head wt))
         label (branch-label wt)]
-    [marker relpath sha label]))
+    [marker path sha label]))
+
+(defn- strip-ansi [s]
+  (str/replace s #"\x1b\[[0-9;]*m" ""))
 
 (defn- pad-column [rows col-idx]
-  (let [width (apply max (map #(count (nth % col-idx)) rows))]
-    (mapv #(update % col-idx (fn [s] (str s (apply str (repeat (- width (count s)) " ")))))
+  (let [width (apply max (map #(count (strip-ansi (nth % col-idx))) rows))]
+    (mapv #(update % col-idx (fn [s] (str s (apply str (repeat (- width (count (strip-ansi s))) " ")))))
           rows)))
 
 (defn render-list
@@ -42,10 +45,10 @@
   [wts cwd]
   (if (empty? wts)
     "(no worktrees)"
-    (let [base-path (let [main-path (:path (first wts))]
-                      (str/replace main-path #"/[^/]+$" ""))
-          rows (mapv #(format-row % cwd base-path) wts)
-          padded (-> rows
+    (let [rows (mapv #(format-row % cwd) wts)
+          header [" " "PATH" "COMMIT" "BRANCH"]
+          all-rows (cons header rows)
+          padded (-> all-rows
                      (pad-column 0)
                      (pad-column 1)
                      (pad-column 2))]
