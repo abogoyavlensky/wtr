@@ -46,6 +46,7 @@
                       (str/replace main-path #"/[^/]+$" ""))
           rows (mapv #(format-row % cwd base-path) wts)
           padded (-> rows
+                     (pad-column 0)
                      (pad-column 1)
                      (pad-column 2))]
       (str/join "\n" (map #(str/join "  " %) padded)))))
