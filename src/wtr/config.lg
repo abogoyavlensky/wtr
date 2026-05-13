@@ -1,0 +1,110 @@
+(ns wtr.config
+  (:require [os :as os]
+            [clojure.string :as str]))
+
+(defn config-path
+  "Returns the absolute path to ~/.config/wtr/config.toml.
+   Throws ex-info when $HOME is unset (let-go returns \"\" for missing env vars)."
+  []
+  (let [home (os/getenv "HOME")]
+    (when (str/blank? home)
+      (throw (ex-info "HOME environment variable is not set" {})))
+    (str home "/.config/wtr/config.toml")))
+
+(defn- parent-dir [path]
+  (let [i (str/last-index-of path "/")]
+    (cond
+      (nil? i) ""
+      (zero? i) "/"
+      :else (subs path 0 i))))
+
+(defn- strip-quotes [s]
+  (let [s (str/trim s)]
+    (if (and (>= (count s) 2)
+             (str/starts-with? s "\"")
+             (str/ends-with? s "\""))
+      (subs s 1 (dec (count s)))
+      s)))
+
+(defn parse-toml
+  "Parses a minimal subset of TOML: lines like `key = \"value\"` or `key = value`.
+   Returns a map of keyword keys to string values. Blank lines and `#`-comment
+   lines are ignored."
+  [content]
+  (reduce
+   (fn [m line]
+     (let [trimmed (str/trim line)]
+       (if (or (str/blank? trimmed) (str/starts-with? trimmed "#"))
+         m
+         (let [eq (str/index-of line "=")]
+           (if (nil? eq)
+             m
+             (let [k (str/trim (subs line 0 eq))
+                   v (strip-quotes (subs line (inc eq)))]
+               (assoc m (keyword k) v)))))))
+   {}
+   (str/split content #"\n")))
+
+(defn read-config
+  "Reads the config file at (config-path). Returns {:base-dir \"/path\"} when
+   present, nil when the file does not exist. Throws ex-info when the file
+   exists but is missing the `base_dir` key (prevents silent overwrite of a
+   malformed user-edited config)."
+  []
+  (let [path (config-path)]
+    (when (file-exists? path)
+      (let [raw (parse-toml (slurp path))]
+        (if-let [bd (:base_dir raw)]
+          {:base-dir bd}
+          (throw (ex-info (str "Config at " path " is missing `base_dir`. "
+                               "Edit it to set an absolute path.")
+                          {:path path})))))))
+
+(defn write-config!
+  "Writes the config map to (config-path). Creates parent directories as needed."
+  [config]
+  (let [path (config-path)
+        parent (parent-dir path)]
+    (when-not (file-exists? parent)
+      (mkdir parent))
+    (spit path (str "base_dir = \"" (:base-dir config) "\"\n"))))
+
+(defn validate-base-dir!
+  "Validates that path is absolute (starts with \"/\"). Throws ex-info otherwise.
+   The thrown message is two lines: the violation, then a hint to edit the
+   config file."
+  [path]
+  (when-not (and (string? path) (str/starts-with? path "/"))
+    (throw (ex-info (str "base_dir must be an absolute path, got: " path "\n"
+                         "Edit " (config-path) " to use an absolute path.")
+                    {:path path})))
+  path)
+
+(defn default-base-dir
+  "Returns the default base-dir for first-run: a sibling `worktrees` directory
+   next to the main worktree. For `/Users/x/Projects/wtr` returns
+   `/Users/x/Projects/worktrees`."
+  [main-worktree-path]
+  (str (parent-dir main-worktree-path) "/worktrees"))
+
+(defn ensure-config!
+  "Returns the base-dir to use. Resolution order:
+   1. override-base-dir (validated, returned as-is)
+   2. existing config file (validated)
+   3. first-run default: sibling `worktrees` dir; config written to disk and
+      a one-line notice printed.
+   Throws ex-info when an existing or override value is not absolute."
+  [override-base-dir main-worktree-path]
+  (cond
+    (not (str/blank? (or override-base-dir "")))
+    (validate-base-dir! override-base-dir)
+
+    :else
+    (if-let [cfg (read-config)]
+      (validate-base-dir! (:base-dir cfg))
+      (let [default (default-base-dir main-worktree-path)]
+        (validate-base-dir! default)
+        (write-config! {:base-dir default})
+        (println "Created config at" (config-path)
+                 "with base_dir =" default)
+        default))))

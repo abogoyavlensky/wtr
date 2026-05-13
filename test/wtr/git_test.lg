@@ -1,0 +1,22 @@
+(ns wtr.git-test
+  (:require [os :as os]
+            [clojure.string :as str]
+            [test :refer [deftest is testing run-tests]]
+            [wtr.git :as git]))
+
+(deftest main-worktree-path-returns-absolute-path
+  (let [path (git/main-worktree-path)]
+    (is (string? path))
+    (is (str/starts-with? path "/"))))
+
+(deftest branch-exists-detects-current-branch
+  (testing "current branch (HEAD) is detected"
+    (let [head (:out (os/sh "git" "rev-parse" "--abbrev-ref" "HEAD"))
+          name (str/trim head)]
+      (is (git/branch-exists? name)))))
+
+(deftest branch-exists-returns-false-for-missing
+  (is (= false (git/branch-exists? "wtr-test-nonexistent-xyz-987654"))))
+
+(run-tests)
+(when-not test/*test-result* (os/exit 1))

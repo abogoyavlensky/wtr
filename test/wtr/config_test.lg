@@ -1,0 +1,76 @@
+(ns wtr.config-test
+  (:require [os :as os]
+            [clojure.string :as str]
+            [test :refer [deftest is testing run-tests]]
+            [wtr.config :as config]))
+
+(deftest parse-toml-basic
+  (testing "parses key = \"value\" lines"
+    (is (= {:base_dir "/abs/path"}
+           (config/parse-toml "base_dir = \"/abs/path\"\n"))))
+  (testing "ignores blanks and comments"
+    (is (= {:base_dir "/x"}
+           (config/parse-toml "# comment\n\nbase_dir = \"/x\"\n"))))
+  (testing "handles unquoted values"
+    (is (= {:base_dir "/x"}
+           (config/parse-toml "base_dir = /x\n")))))
+
+(deftest validate-base-dir-rejects-relative
+  (testing "throws on relative path"
+    (is (= :threw
+           (try (config/validate-base-dir! "../worktrees")
+                :ok
+                (catch e :default :threw)))))
+  (testing "throws on empty"
+    (is (= :threw
+           (try (config/validate-base-dir! "")
+                :ok
+                (catch e :default :threw))))))
+
+(deftest validate-base-dir-accepts-absolute
+  (is (= "/abs/path" (config/validate-base-dir! "/abs/path"))))
+
+(deftest default-base-dir-is-sibling
+  (is (= "/Users/andrew/Projects/worktrees"
+         (config/default-base-dir "/Users/andrew/Projects/wtr"))))
+
+(defn- tempdir []
+  (let [base (os/temp-dir)
+        suffix (str "wtr-config-test-" (rand-int 1000000))]
+    (str base "/" suffix)))
+
+(deftest ensure-config-first-run
+  (testing "creates config and returns default base-dir on first run"
+    (let [tmp (tempdir)
+          orig-home (os/getenv "HOME")]
+      (mkdir tmp)
+      (os/setenv "HOME" tmp)
+      (try
+        (let [base (config/ensure-config! nil "/Users/u/Projects/wtr")]
+          (is (= "/Users/u/Projects/worktrees" base))
+          (is (file-exists? (str tmp "/.config/wtr/config.toml"))))
+        (finally
+          (os/setenv "HOME" orig-home))))))
+
+(deftest ensure-config-uses-override
+  (let [orig-home (os/getenv "HOME")]
+    (os/setenv "HOME" (tempdir))
+    (try
+      (is (= "/custom/dir"
+             (config/ensure-config! "/custom/dir" "/Users/u/Projects/wtr")))
+      (finally
+        (os/setenv "HOME" orig-home)))))
+
+(deftest ensure-config-rejects-relative-override
+  (let [orig-home (os/getenv "HOME")]
+    (os/setenv "HOME" (tempdir))
+    (try
+      (is (= :threw
+             (try (config/ensure-config! "../rel" "/Users/u/Projects/wtr")
+                  :ok
+                  (catch e :default :threw))))
+      (finally
+        (os/setenv "HOME" orig-home)))))
+
+(run-tests)
+(when-not test/*test-result* (os/exit 1))

@@ -1,4 +1,4 @@
-# wtr create — implementation plan
+# wtr create — implementation plan (completed 2026-05-13)
 
 Implement the `create` subcommand of `wtr` in let-go. Creates new git worktrees
 with automatic configuration management. See `docs/INITIAL_DESIGN.md` for the
@@ -117,25 +117,40 @@ Config file management and validation.
 
 ```clojure
 (defn config-path []
-  "Returns ~/.config/wtr/config.toml path")
+  "Returns absolute path to ~/.config/wtr/config.toml.
+   Implementation: resolve HOME via (os/getenv \"HOME\"); since let-go
+   returns \"\" for unset vars (gotchas), guard with str/blank? and
+   throw ex-info if HOME is unset. Concatenate with \"/.config/wtr/config.toml\".")
 
 (defn read-config []
-  "Reads config file, returns {:base-dir \"/path\"} or nil if missing")
+  "Reads config file, returns {:base-dir \"/path\"} or nil if missing.
+   Use (file-exists? path) for existence check; (slurp path) to read.")
 
 (defn write-config! [config]
-  "Writes config map to file, creates parent dirs if needed")
+  "Writes config map to file, creates parent dirs if needed.
+   Use (mkdir parent-dir) — let-go's mkdir is recursive (wraps os.MkdirAll).
+   Use (spit path content) to write.")
 
 (defn validate-base-dir! [path]
-  "Validates path is absolute, throws ex-info if not")
+  "Validates path is absolute (starts with \"/\"), throws ex-info if not.
+   Error message: \"base_dir must be an absolute path, got: {path}\".")
 
 (defn ensure-config! [override-base-dir main-worktree-path]
   "Returns base-dir from override, config, or creates default config.
    Creates config on first run if missing. Uses main-worktree-path to
-   resolve default ../worktrees relative path.")
+   resolve default ../worktrees relative path.
+   Prints \"Created config at <path> with base_dir = <dir>\" on first-run create.")
 ```
 
 TOML parsing: Use simple string manipulation (read line, split on `=`, trim).
-TOML writing: Simple string formatting.
+Match `key = "value"` lines only; ignore blanks and `#` comments.
+TOML writing: Simple string formatting: `base_dir = "<absolute-path>"\n`.
+
+Default base-dir derivation (when no override and no config file):
+- Take `main-worktree-path` (e.g. `/Users/andrew/Projects/wtr`).
+- Parent is `/Users/andrew/Projects`.
+- Default base-dir is `/Users/andrew/Projects/worktrees` (sibling `worktrees` dir).
+- Derive via `string/last-index-of` + `subs` (no need for an lgx.path dep).
 
 ### `src/wtr/git.lg` (enhance existing)
 
@@ -162,13 +177,15 @@ Add worktree creation operations to existing git module.
 Command handler that orchestrates config, validation, and git operations.
 
 ```clojure
-(defn- dir-exists? [path]
-  "Returns true if directory exists.
-   Implementation: Check (os/sh \"test\" \"-d\" path) exit code = 0")
+(defn- basename [path]
+  "Last non-blank segment of a /-separated path.
+   Implementation: (last (filter #(not (str/blank? %)) (str/split path \"/\")))")
 
 (defn- error-exit [& msgs]
-  "Prints error message to stderr and exits with code 1.
-   Implementation: (binding [*out* *err*] (apply println \"Error:\" msgs)) (os/exit 1)")
+  "Prints \"Error: <msgs...>\" to stderr and exits with code 1.
+   Implementation: (binding [*out* *err*] (apply println \"Error:\" msgs)) (os/exit 1)
+   Callers MUST NOT include the \"Error:\" prefix in their message strings —
+   error-exit prepends it.")
 
 (defn create [{:keys [global args opts]}]
   "Create a new worktree"
@@ -178,22 +195,30 @@ Command handler that orchestrates config, validation, and git operations.
         base-dir (config/ensure-config! (:base-dir global) main-path)
         project (basename main-path)
         wt-path (str base-dir "/" project "/" name)]
-    
+
     ;; Validate
     (when (git/branch-exists? name)
       (error-exit "Branch '" name "' already exists"))
-    (when (dir-exists? wt-path)
-      (error-exit "Directory already exists: " wt-path))
-    
+    (when (file-exists? wt-path)
+      (error-exit "Directory already exists:" wt-path))
+
     ;; Create
     (git/create-worktree! wt-path name from-ref)
-    
+
     ;; Report
     (println "Created worktree at" wt-path)
-    (println "Branch:" name (if from-ref (str "(from " from-ref ")") ""))))
+    (if from-ref
+      (println "Branch:" name (str "(from " from-ref ")"))
+      (println "Branch:" name))))
 ```
 
-Note: `ensure-config!` now takes `main-path` as second parameter to resolve default `../worktrees` path on first run.
+Notes:
+- `ensure-config!` takes `main-path` to resolve default `../worktrees` on first run.
+- `tiny-cli` passes a context map of shape `{:global {...} :args {...} :opts {...}}`
+  (confirmed in `tiny-cli`'s README). Destructuring above matches that contract.
+- Use `file-exists?` (core fn) for directory existence — works for both files and
+  directories per let-go's `os.Stat` semantics.
+- Error message strings must NOT start with `"Error:"` — the helper prepends it.
 
 ### `main.lg` (update app spec)
 
@@ -267,14 +292,7 @@ Add global `--base-dir` option and `create` command.
 3. Add `create` command to `:commands`
 4. Verify help output shows new command and global option
 
-### Step 5: Add tests for list command
-
-1. Create `test/wtr/format_test.lg`
-2. Test column alignment with various path lengths
-3. Test current worktree marker detection
-4. Test ANSI color stripping for width calculation
-
-### Step 6: Update README
+### Step 5: Update README
 
 1. Edit `README.md`
 2. Add tool description and purpose
@@ -283,7 +301,7 @@ Add global `--base-dir` option and `create` command.
 5. Document configuration file location and format
 6. Add installation/build instructions
 
-### Step 7: Verification
+### Step 6: Verification
 
 Run smoke tests:
 
@@ -326,15 +344,15 @@ git branch -D test-branch-name
 
 Run automated tests:
 ```bash
-# Run test suite
-lgx test
+# Local lgx invocation (system lgx may be missing/different)
+LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx test
 ```
 
-### Step 8: Commit
+### Step 7: Commit
 
 ```bash
 git add src/wtr/config.lg src/wtr/git.lg src/wtr/commands.lg main.lg
-git add test/wtr/config_test.lg test/wtr/git_test.lg test/wtr/commands_test.lg test/wtr/format_test.lg
+git add test/wtr/config_test.lg test/wtr/git_test.lg test/wtr/commands_test.lg
 git add README.md
 git commit -m "Implement wtr create command with config management"
 ```
@@ -369,3 +387,36 @@ Not in this plan, but noted for later:
 - `wtr init` command for interactive config setup
 - Config validation on read (warn about unknown keys)
 - Shell completion for worktree names
+
+## Outcome
+
+All steps complete. Implementation matches the plan with two improvements:
+
+- `read-config` now errors when the config file exists but is missing
+  `base_dir`, rather than silently overwriting a user-edited but malformed
+  config (caught in code review).
+- The relative-path validation error includes the two-line message from the
+  spec (the hint line was missing in the first pass).
+
+`basename` is `defn` (not `defn-`) so it can be unit-tested.
+
+Test results:
+- `test/wtr/config_test.lg` — 7 tests, 11 assertions, 0 failures.
+- `test/wtr/git_test.lg` — 3 tests, 4 assertions, 0 failures.
+- `test/wtr/commands_test.lg` — 2 tests, 4 assertions, 0 failures.
+
+Smoke tests verified end-to-end:
+- First-run config creation under a fake `$HOME`.
+- `--base-dir` override creates worktree at the override path.
+- `--from <ref>` produces a worktree branched off that ref and reports it.
+- Existing branch and existing directory both fail with clear errors and exit 1.
+- Invalid `--from` ref: git's `fatal: invalid reference` passes through.
+- Relative `base_dir` in config: rejected with the two-line spec error.
+- Malformed config (no `base_dir` key): rejected without overwriting the file.
+
+Known low-severity gaps left for a future plan (flagged in review):
+- No validation of worktree-name inputs (e.g., names containing `..` or
+  starting with `-`). Git rejects most malformed branch names itself; path
+  traversal via `name = "../sneaky"` is a robustness gap, not a security one.
+- TOML quote-stripping only fires when both ends are quoted; a single
+  stray quote is returned verbatim.

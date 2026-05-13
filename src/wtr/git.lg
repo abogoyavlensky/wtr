@@ -33,3 +33,30 @@
               (let [lines (str/split rec #"\x00")]
                 (parse-record lines)))
             (remove str/blank? records)))))
+
+(defn main-worktree-path
+  "Returns the absolute path to the main worktree (first entry of `worktrees`)."
+  []
+  (:path (first (worktrees))))
+
+(defn branch-exists?
+  "Returns true if a local branch with the given name exists."
+  [name]
+  (let [result (os/sh "git" "rev-parse" "--verify"
+                      (str "refs/heads/" name))]
+    (zero? (:exit result))))
+
+(defn create-worktree!
+  "Runs `git worktree add` to create a new worktree at `path` on a new branch
+   `branch`. When `from-ref` is set, branches off that ref; otherwise off HEAD.
+   Throws ex-info with git's stderr on non-zero exit."
+  [path branch from-ref]
+  (let [args (if (str/blank? (or from-ref ""))
+               ["git" "worktree" "add" "-b" branch path]
+               ["git" "worktree" "add" "-b" branch path from-ref])
+        result (apply os/sh args)]
+    (when-not (zero? (:exit result))
+      (throw (ex-info "git worktree add failed"
+                      {:stderr (:err result)
+                       :stdout (:out result)})))
+    result))

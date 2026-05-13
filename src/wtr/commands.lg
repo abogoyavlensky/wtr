@@ -1,8 +1,23 @@
 (ns wtr.commands
   (:require [tiny-cli.core :as cli]
             [os :as os]
+            [clojure.string :as str]
             [wtr.git :as git]
-            [wtr.format :as fmt]))
+            [wtr.format :as fmt]
+            [wtr.config :as config]))
+
+(defn- error-exit
+  "Prints \"Error: <msgs...>\" to stderr and exits 1. Callers must not include
+   the \"Error:\" prefix in their message strings — this helper prepends it."
+  [& msgs]
+  (binding [*out* *err*]
+    (apply println "Error:" msgs))
+  (os/exit 1))
+
+(defn basename
+  "Last non-blank segment of a /-separated path."
+  [path]
+  (last (filter #(not (str/blank? %)) (str/split path "/"))))
 
 (defn list
   "List worktrees."
@@ -15,4 +30,34 @@
       (let [stderr (or (:stderr (ex-data e)) (str e))]
         (binding [*out* *err*]
           (print stderr)))
+      (os/exit 1))))
+
+(defn create
+  "Create a new worktree at {base-dir}/{project}/{name} on a new branch <name>."
+  [{:keys [global args opts]}]
+  (try
+    (let [name (:name args)
+          from-ref (:from opts)
+          main-path (git/main-worktree-path)
+          base-dir (config/ensure-config! (:base-dir global) main-path)
+          project (basename main-path)
+          wt-path (str base-dir "/" project "/" name)]
+
+      (when (git/branch-exists? name)
+        (error-exit (str "Branch '" name "' already exists")))
+      (when (file-exists? wt-path)
+        (error-exit (str "Directory already exists: " wt-path)))
+
+      (git/create-worktree! wt-path name from-ref)
+
+      (println "Created worktree at" wt-path)
+      (if (str/blank? (or from-ref ""))
+        (println "Branch:" name)
+        (println "Branch:" name (str "(from " from-ref ")"))))
+    (catch e :default
+      (let [stderr (:stderr (ex-data e))]
+        (binding [*out* *err*]
+          (if stderr
+            (print stderr)
+            (println "Error:" (ex-message e)))))
       (os/exit 1))))

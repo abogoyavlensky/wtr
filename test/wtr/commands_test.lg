@@ -1,3 +1,23 @@
 (ns wtr.commands-test
-  (:require [clojure.test :refer :all]
-            [wtr.commands :refer :all]))
+  (:require [os :as os]
+            [test :refer [deftest is testing run-tests]]
+            [wtr.commands :as cmds]))
+
+(deftest basename-extracts-last-segment
+  (testing "simple absolute path"
+    (is (= "wtr" (cmds/basename "/Users/andrew/Projects/wtr"))))
+  (testing "trailing slash"
+    (is (= "wtr" (cmds/basename "/Users/andrew/Projects/wtr/"))))
+  (testing "root segment"
+    (is (= "a" (cmds/basename "/a")))))
+
+(deftest path-construction-pattern
+  (testing "base/project/name string concat matches the spec"
+    (let [base "/Users/u/Projects/worktrees"
+          project "wtr"
+          name "feature-x"]
+      (is (= "/Users/u/Projects/worktrees/wtr/feature-x"
+             (str base "/" project "/" name))))))
+
+(run-tests)
+(when-not test/*test-result* (os/exit 1))

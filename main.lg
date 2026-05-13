@@ -8,9 +8,22 @@
   {:name "wtr"
    :version "0.1.0"
    :doc "Small git worktree helper."
+   :opts [{:key :base-dir
+           :long "base-dir"
+           :value? true
+           :doc "Override base directory for worktrees."}]
    :commands [{:name "list"
                :doc "List worktrees."
-               :run cmds/list}]})
+               :run cmds/list}
+              {:name "create"
+               :doc "Create a new worktree."
+               :args [{:key :name
+                       :doc "Worktree name (used for directory and branch)."}]
+               :opts [{:key :from
+                       :long "from"
+                       :value? true
+                       :doc "Create from specific branch or commit."}]
+               :run cmds/create}]})
 
 (defn- cli-argv [argv]
   "Return args after the script path while developing, or CLI args in bundled mode."
