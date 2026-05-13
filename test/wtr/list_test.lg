@@ -1,0 +1,99 @@
+(ns wtr.list-test
+  (:require [os :as os]
+            [clojure.string :as str]
+            [test :refer [deftest is testing run-tests]]
+            [wtr.format :as fmt]))
+
+(deftest render-list-empty
+  (testing "empty worktree list"
+    (is (= "(no worktrees)" (fmt/render-list [] "/any/path")))))
+
+(deftest render-list-single-worktree
+  (testing "single worktree with branch"
+    (let [wts [{:path "/Users/u/Projects/wtr"
+                :head "3270c3d1234567890abcdef"
+                :branch "refs/heads/master"
+                :detached? false
+                :bare? false
+                :locked? false
+                :prunable? false}]
+          output (fmt/render-list wts "/Users/u/Projects/wtr")]
+      (is (str/includes? output "PATH"))
+      (is (str/includes? output "COMMIT"))
+      (is (str/includes? output "BRANCH"))
+      (is (str/includes? output "/Users/u/Projects/wtr"))
+      (is (str/includes? output "3270c3d"))
+      (is (str/includes? output "master")))))
+
+(deftest render-list-multiple-worktrees
+  (testing "multiple worktrees with current marker"
+    (let [wts [{:path "/Users/u/Projects/wtr"
+                :head "3270c3d1234567890abcdef"
+                :branch "refs/heads/master"
+                :detached? false
+                :bare? false
+                :locked? false
+                :prunable? false}
+               {:path "/Users/u/Projects/worktrees/wtr/feat-x"
+                :head "8a1b2c31234567890abcdef"
+                :branch "refs/heads/feat-x"
+                :detached? false
+                :bare? false
+                :locked? false
+                :prunable? false}]
+          output (fmt/render-list wts "/Users/u/Projects/worktrees/wtr/feat-x")]
+      (is (str/includes? output "master"))
+      (is (str/includes? output "feat-x"))
+      (is (str/includes? output "3270c3d"))
+      (is (str/includes? output "8a1b2c3")))))
+
+(deftest render-list-detached-head
+  (testing "detached HEAD state"
+    (let [wts [{:path "/Users/u/Projects/wtr"
+                :head "abc1234567890abcdef"
+                :branch nil
+                :detached? true
+                :bare? false
+                :locked? false
+                :prunable? false}]
+          output (fmt/render-list wts "/other/path")]
+      (is (str/includes? output "(detached)")))))
+
+(deftest render-list-bare-repo
+  (testing "bare repository"
+    (let [wts [{:path "/Users/u/Projects/wtr.git"
+                :head nil
+                :branch nil
+                :detached? false
+                :bare? true
+                :locked? false
+                :prunable? false}]
+          output (fmt/render-list wts "/other/path")]
+      (is (str/includes? output "(bare)")))))
+
+(deftest render-list-locked-worktree
+  (testing "locked worktree"
+    (let [wts [{:path "/Users/u/Projects/wtr"
+                :head "abc1234567890abcdef"
+                :branch "refs/heads/main"
+                :detached? false
+                :bare? false
+                :locked? true
+                :prunable? false}]
+          output (fmt/render-list wts "/other/path")]
+      (is (str/includes? output "[locked]")))))
+
+(deftest render-list-prunable-worktree
+  (testing "prunable worktree"
+    (let [wts [{:path "/Users/u/Projects/wtr"
+                :head "abc1234567890abcdef"
+                :branch "refs/heads/main"
+                :detached? false
+                :bare? false
+                :locked? false
+                :prunable? true}]
+          output (fmt/render-list wts "/other/path")]
+      (is (str/includes? output "[prunable]")))))
+
+(run-tests)
+(when-not test/*test-result* (os/exit 1))
