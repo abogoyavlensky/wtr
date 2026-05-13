@@ -74,7 +74,5 @@ lgx run -b bin/wtr main.lg
 ## Tests
 
 ```bash
-lgx run test/wtr/config_test.lg
-lgx run test/wtr/git_test.lg
-lgx run test/wtr/commands_test.lg
+make test
 ```
