@@ -128,9 +128,10 @@ Config file management and validation.
 (defn validate-base-dir! [path]
   "Validates path is absolute, throws ex-info if not")
 
-(defn ensure-config! [override-base-dir]
+(defn ensure-config! [override-base-dir main-worktree-path]
   "Returns base-dir from override, config, or creates default config.
-   Creates config on first run if missing.")
+   Creates config on first run if missing. Uses main-worktree-path to
+   resolve default ../worktrees relative path.")
 ```
 
 TOML parsing: Use simple string manipulation (read line, split on `=`, trim).
@@ -142,13 +143,18 @@ Add worktree creation operations to existing git module.
 
 ```clojure
 (defn main-worktree-path []
-  "Returns absolute path to main worktree (first entry from worktrees)")
+  "Returns absolute path to main worktree.
+   Implementation: (-> (worktrees) first :path)")
 
 (defn branch-exists? [name]
-  "Returns true if branch exists (checks git branch --list)")
+  "Returns true if branch exists locally.
+   Implementation: git rev-parse --verify refs/heads/<name>
+   Check exit code: 0 = exists, non-zero = doesn't exist")
 
 (defn create-worktree! [path branch from-ref]
-  "Calls git worktree add. Throws ex-info on failure.")
+  "Calls git worktree add. Throws ex-info on failure.
+   When from-ref is nil: git worktree add <path> <branch>
+   When from-ref is set: git worktree add -b <branch> <path> <from-ref>")
 ```
 
 ### `src/wtr/commands.lg` (add create function)
@@ -156,12 +162,20 @@ Add worktree creation operations to existing git module.
 Command handler that orchestrates config, validation, and git operations.
 
 ```clojure
+(defn- dir-exists? [path]
+  "Returns true if directory exists.
+   Implementation: Check (os/sh \"test\" \"-d\" path) exit code = 0")
+
+(defn- error-exit [& msgs]
+  "Prints error message to stderr and exits with code 1.
+   Implementation: (binding [*out* *err*] (apply println \"Error:\" msgs)) (os/exit 1)")
+
 (defn create [{:keys [global args opts]}]
   "Create a new worktree"
   (let [name (:name args)
         from-ref (:from opts)
-        base-dir (config/ensure-config! (:base-dir global))
         main-path (git/main-worktree-path)
+        base-dir (config/ensure-config! (:base-dir global) main-path)
         project (basename main-path)
         wt-path (str base-dir "/" project "/" name)]
     
@@ -178,6 +192,8 @@ Command handler that orchestrates config, validation, and git operations.
     (println "Created worktree at" wt-path)
     (println "Branch:" name (if from-ref (str "(from " from-ref ")") ""))))
 ```
+
+Note: `ensure-config!` now takes `main-path` as second parameter to resolve default `../worktrees` path on first run.
 
 ### `main.lg` (update app spec)
 
@@ -220,6 +236,8 @@ Add global `--base-dir` option and `create` command.
    - `validate-base-dir!` rejects relative paths
    - `validate-base-dir!` accepts absolute paths
    - TOML parsing handles basic format
+   - `ensure-config!` creates config on first run with correct default path
+   - `ensure-config!` returns existing config on subsequent runs
 
 ### Step 2: Enhance git module
 
@@ -237,9 +255,10 @@ Add global `--base-dir` option and `create` command.
 2. Implement `create` function with validation and orchestration
 3. Add helper for directory existence check
 4. Add helper for error-exit with message
-5. Write tests in `test/wtr/commands_test.lg`:
+5. Add tests to `test/wtr/commands_test.lg` (file exists but is empty):
    - Path construction logic
    - Validation logic (branch exists, dir exists)
+   - Helper functions (dir-exists?, error-exit)
 
 ### Step 4: Update main
 
@@ -250,7 +269,7 @@ Add global `--base-dir` option and `create` command.
 
 ### Step 5: Add tests for list command
 
-1. Edit `test/wtr/format_test.lg`
+1. Create `test/wtr/format_test.lg`
 2. Test column alignment with various path lengths
 3. Test current worktree marker detection
 4. Test ANSI color stripping for width calculation
@@ -300,9 +319,9 @@ echo 'base_dir = "../worktrees"' > ~/.config/wtr/config.toml
 wtr create test-relative
 # Verify: error message about absolute path requirement
 
-# Cleanup
-git worktree remove {paths}
-git branch -D {branches}
+# Cleanup (replace with actual paths/branches from tests above)
+git worktree remove /path/to/test-worktree
+git branch -D test-branch-name
 ```
 
 Run automated tests:
