@@ -243,7 +243,7 @@ Add global `--base-dir` option and `create` command.
 
 1. Edit `src/wtr/git.lg`
 2. Implement `main-worktree-path` (use existing `worktrees` function)
-3. Implement `branch-exists?` (call `git branch --list {name}`)
+3. Implement `branch-exists?` (call `git rev-parse --verify refs/heads/{name}`)
 4. Implement `create-worktree!` (call `git worktree add`)
 5. Write tests in `test/wtr/git_test.lg`:
    - `main-worktree-path` returns first worktree path
