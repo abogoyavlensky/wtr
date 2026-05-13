@@ -1,6 +1,6 @@
 # .mise.toml
 [tools]
-lg = "1.7.2"
+lg = "1.7.4"
 lgx = "0.1.0-alpha2"
 cljfmt = "0.16.4"
 
