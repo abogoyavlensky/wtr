@@ -1,4 +1,6 @@
 {:paths ["src"]
+ :main "main.lg"
+ :targets {:bin {:out "bin/wtr"}}
  :deps {tiny-cli {;:local/root "../tiny-cli"
                   :git/url "https://github.com/abogoyavlensky/tiny-cli"
                   :git/sha "7fc475f9740df89b8b68c7e9ee9dfbcc57cd3aa9"}}}

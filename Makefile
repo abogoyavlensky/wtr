@@ -11,5 +11,5 @@ help:  ## Show this help
 test:  ## Run all test suites
 	@for f in $(TEST_FILES); do \
 	  echo "==> $$f"; \
-	  lgx exec $$f || exit 1; \
+	  lgx run $$f || exit 1; \
 	done

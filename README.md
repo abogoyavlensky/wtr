@@ -64,10 +64,10 @@ native binary via [lgx](https://github.com/abogoyavlensky/lgx).
 
 ```bash
 # Run from source (development)
-lgx exec main.lg list
+lgx run main.lg list
 
 # Bundle to a binary
-lgx exec -b bin/wtr main.lg
+lgx run -b bin/wtr main.lg
 ./bin/wtr list
 ```
 
