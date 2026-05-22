@@ -94,6 +94,3 @@
                 :prunable? true}]
           output (fmt/render-list wts "/other/path")]
       (is (str/includes? output "[prunable]")))))
-
-(run-tests)
-(when-not test/*test-result* (os/exit 1))

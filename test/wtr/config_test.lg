@@ -71,6 +71,3 @@
                   (catch e :default :threw))))
       (finally
         (os/setenv "HOME" orig-home)))))
-
-(run-tests)
-(when-not test/*test-result* (os/exit 1))

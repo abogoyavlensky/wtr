@@ -18,6 +18,3 @@
           name "feature-x"]
       (is (= "/Users/u/Projects/worktrees/wtr/feature-x"
              (str base "/" project "/" name))))))
-
-(run-tests)
-(when-not test/*test-result* (os/exit 1))

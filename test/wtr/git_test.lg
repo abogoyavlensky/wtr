@@ -17,6 +17,3 @@
 
 (deftest branch-exists-returns-false-for-missing
   (is (= false (git/branch-exists? "wtr-test-nonexistent-xyz-987654"))))
-
-(run-tests)
-(when-not test/*test-result* (os/exit 1))
