@@ -64,15 +64,15 @@ native binary via [lgx](https://github.com/abogoyavlensky/lgx).
 
 ```bash
 # Run from source (development)
-lgx run main.lg list
+lgx run -- list
 
 # Bundle to a binary
-lgx run -b bin/wtr main.lg
+lgx build
 ./bin/wtr list
 ```
 
 ## Tests
 
 ```bash
-make test
+lgx test
 ```
