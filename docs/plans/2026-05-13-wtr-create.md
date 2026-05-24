@@ -345,7 +345,7 @@ git branch -D test-branch-name
 Run automated tests:
 ```bash
 # Local lgx invocation (system lgx may be missing/different)
-LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx test
+lgx test
 ```
 
 ### Step 7: Commit

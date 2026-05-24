@@ -103,7 +103,7 @@ Smoke checks (no formal tests yet). Run from this repo, using the local
 let-go and lgx builds:
 
 ```
-LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx run main.lg list
+lgx run -- list
 ```
 
 - Plain run from the main worktree → marker on the main row.

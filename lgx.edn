@@ -3,4 +3,4 @@
  :targets {:bin {:out "bin/wtr"}}
  :deps {tiny-cli {;:local/root "../tiny-cli"
                   :git/url "https://github.com/abogoyavlensky/tiny-cli"
-                  :git/sha "7fc475f9740df89b8b68c7e9ee9dfbcc57cd3aa9"}}}
+                  :git/sha "6bc4edede5c2e7fc3f579ea69d4162852fee69a3"}}}

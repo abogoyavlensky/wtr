@@ -1,4 +1,5 @@
 (ns wtr.commands
+  (:refer-clojure :exclude [list])
   (:require [tiny-cli.core :as cli]
             [os :as os]
             [clojure.string :as str]
