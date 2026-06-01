@@ -45,6 +45,39 @@ Branch: throwaway
 The branch name is taken from `<name>` as-is — no prefix is added. To use a
 namespaced branch, pass it explicitly: `wtr create feature/bar`.
 
+### `wtr run <name> [command...]`
+
+Runs a command in the named worktree, with stdio streamed and the command's
+exit code propagated. With no command, it opens an interactive shell (`$SHELL`,
+falling back to `/bin/sh`) in the worktree — the binary-native way to "be in"
+a worktree without changing your parent shell. `master` or `main` target the
+main worktree.
+
+```bash
+# Run a one-off command in a worktree
+$ wtr run feature-x npm test
+
+# Flags after <name> flow to the command — no `--` needed
+$ wtr run feature-x git status -s
+
+# A literal `--` inside the command is passed through untouched
+$ wtr run feature-x git checkout -- file.txt
+
+# Open a shell in the worktree; `exit` returns you
+$ wtr run feature-x
+
+# Operate on the main worktree
+$ wtr run master git pull
+```
+
+The name is resolved against `git worktree list`, so only existing worktrees
+match (no config needed). Namespaced names work too: `wtr run feature/bar`.
+A worktree literally named `master` or `main` is shadowed by the main-worktree
+alias.
+
+Note: an interactive shell needs the built binary (`./bin/wtr run …`). Under
+`lgx run` the dev runner buffers stdio, so a nested shell won't be interactive.
+
 ## Configuration
 
 Config file: `~/.config/wtr/config.toml`
