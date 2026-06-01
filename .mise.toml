@@ -1,7 +1,7 @@
 # .mise.toml
 [tools]
-lg = "1.8.0"
-lgx = "0.1.0-alpha8"
+lg = "1.9.0"
+lgx = "0.1.0-alpha9"
 cljfmt = "0.16.4"
 
 [tool_alias]
