@@ -169,9 +169,11 @@ Eventually, we would need few commands:
 ```bash
 wtr list  # lists all worktrees
 wtr create <name>  # creates a new worktree with the given name
-wtr switch <name|branch>  # switches to the given worktree or branch
-wtr cd <name>  # changes directory to the given worktree
 wtr run <name> <command...>  # runs the given command in the given existing worktree
+wtr cd <name>  # changes directory to the given worktree
+wtr switch <name>  # switches to the given worktree in detached mode (!)
+wtr remove <name>  # removes the given worktree
+wtr config  # read-only show current config file path and its content
 ```
 
 ### Example usage
