@@ -20,6 +20,22 @@
   [path]
   (last (filter #(not (str/blank? %)) (str/split path "/"))))
 
+(defn resolve-worktree-path
+  "Resolve a worktree `name` to its absolute path against the live worktrees
+   vector (from wtr.git/worktrees). `master`/`main` alias the main (first)
+   worktree; otherwise the worktree whose path ends with `/<name>`. Matching by
+   suffix (not just basename) handles namespaced names like `feature/bar`,
+   whose worktree lives at `{base}/{project}/feature/bar`. Returns nil when
+   nothing matches. Config-free: only resolves worktrees that exist."
+  [wts name]
+  (cond
+    (or (= name "master") (= name "main"))
+    (:path (first wts))
+
+    :else
+    (some (fn [w] (when (str/ends-with? (:path w) (str "/" name)) (:path w)))
+          wts)))
+
 (defn list
   "List worktrees."
   [context]
@@ -55,6 +71,37 @@
       (if (str/blank? (or from-ref ""))
         (println "Branch:" name)
         (println "Branch:" name (str "(from " from-ref ")"))))
+    (catch e :default
+      (let [stderr (:stderr (ex-data e))]
+        (binding [*out* *err*]
+          (if stderr
+            (print stderr)
+            (println "Error:" (ex-message e)))))
+      (os/exit 1))))
+
+(defn run
+  "Run a command (or an interactive shell) in the named worktree.
+   Resolves <name> against `git worktree list` (master/main → main worktree),
+   then execs in that directory with inherited stdio, propagating the exit
+   code. With no command, opens $SHELL (fallback /bin/sh). `os/exec*` cannot
+   set a cwd, so we go through `sh -c` which cd's then execs the command via
+   positional args (no quoting/injection risk)."
+  [{:keys [args]}]
+  (try
+    (let [name (:name args)
+          cmd (:cmd args)
+          dir (resolve-worktree-path (git/worktrees) name)]
+      (when-not dir
+        (error-exit (str "Worktree not found: " name)))
+      ;; The child is run by wtr, not by lgx — clear any inherited LGX_RUN so a
+      ;; bundled lgx-built tool we exec isn't fooled into dev-runner arg parsing.
+      (os/setenv "LGX_RUN" "")
+      (let [shell (let [s (os/getenv "SHELL")] (if (str/blank? s) "/bin/sh" s))
+            cmd-vec (if (empty? cmd) [shell] cmd)
+            code (apply os/exec* "sh" "-c"
+                        "cd \"$1\" || exit 1; shift; exec \"$@\""
+                        "sh" dir cmd-vec)]
+        (os/exit code)))
     (catch e :default
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]

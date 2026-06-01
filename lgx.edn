@@ -1,6 +1,12 @@
 {:paths ["src"]
  :main "main.lg"
  :targets {:bin {:out "bin/wtr"}}
- :deps {tiny-cli {;:local/root "../tiny-cli"
-                  :git/url "https://github.com/abogoyavlensky/tiny-cli"
-                  :git/tag "v0.1.0-alpha6"}}}
+ ;; NOTE: `wtr run` depends on unreleased deps — tiny-cli variadic args, lgx
+ ;; LGX_RUN (alpha12), and let-go `os/exec*`. Builds use the local toolchain
+ ;; (LGX_LG + local lgx) until let-go releases `os/exec*` officially; at that
+ ;; point, tag/release tiny-cli + lgx, restore the git coordinate below, and
+ ;; bump .mise.toml (lgx + lg). See docs/plans/2026-06-01-wtr-run.md (Task 8).
+ :deps {tiny-cli {:local/root "../tiny-cli"
+                  ;; :git/url "https://github.com/abogoyavlensky/tiny-cli"
+                  ;; :git/tag "v0.1.0-alpha7"  ; (to be tagged at release)
+                  }}}

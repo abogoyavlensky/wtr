@@ -2,6 +2,7 @@
   (:require [os :as os]
             [clojure.string :as str]
             [tiny-cli.core :as cli]
+            [wtr.args :as args]
             [wtr.commands :as cmds]))
 
 (def app
@@ -25,13 +26,21 @@
                        :long "from"
                        :value? true
                        :doc "Create from specific branch or commit."}]
-               :run cmds/create}]})
+               :run cmds/create}
+              {:name "run"
+               :doc "Run a command (or a shell) in a worktree."
+               :args [{:key :name
+                       :doc "Worktree name, or master/main for the main worktree."}]
+               :variadic {:key :cmd
+                          :doc "Command to run; omit to open a shell."}
+               :run cmds/run}]})
 
 (defn- cli-argv [argv]
-  "Return args after the `--` while developing, or CLI args in bundled mode."
-  (if (some #(= % "--") argv)
-    (rest (drop-while #(not (= % "--")) argv))
-    (rest argv)))
+  "Application args, robust across dev (`lgx run`) and bundled-binary modes.
+   Detects dev mode via LGX_RUN (set by `lgx run`) rather than sniffing for a
+   `--`, which can collide with a `--` inside a user command (e.g. `run wt
+   git checkout -- file`)."
+  (args/strip-runner-args argv (not (str/blank? (os/getenv "LGX_RUN")))))
 
 (defn- main []
   (cli/run! app (cli-argv os/args)))

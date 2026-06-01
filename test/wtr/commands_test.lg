@@ -18,3 +18,32 @@
           name "feature-x"]
       (is (= "/Users/u/Projects/worktrees/wtr/feature-x"
              (str base "/" project "/" name))))))
+
+(def sample-wts
+  [{:path "/Users/u/Projects/wtr"}
+   {:path "/Users/u/Projects/worktrees/wtr/feat-x"}
+   {:path "/Users/u/Projects/worktrees/wtr/bugfix"}
+   {:path "/Users/u/Projects/worktrees/wtr/feature/bar"}])
+
+(deftest resolve-worktree-path-aliases-main
+  (testing "master resolves to the main (first) worktree"
+    (is (= "/Users/u/Projects/wtr"
+           (cmds/resolve-worktree-path sample-wts "master"))))
+  (testing "main resolves to the main (first) worktree"
+    (is (= "/Users/u/Projects/wtr"
+           (cmds/resolve-worktree-path sample-wts "main")))))
+
+(deftest resolve-worktree-path-by-name
+  (testing "matches a worktree by its directory name"
+    (is (= "/Users/u/Projects/worktrees/wtr/feat-x"
+           (cmds/resolve-worktree-path sample-wts "feat-x")))
+    (is (= "/Users/u/Projects/worktrees/wtr/bugfix"
+           (cmds/resolve-worktree-path sample-wts "bugfix"))))
+
+  (testing "matches a namespaced name by path suffix (feature/bar)"
+    (is (= "/Users/u/Projects/worktrees/wtr/feature/bar"
+           (cmds/resolve-worktree-path sample-wts "feature/bar")))))
+
+(deftest resolve-worktree-path-not-found
+  (testing "returns nil when nothing matches"
+    (is (nil? (cmds/resolve-worktree-path sample-wts "nope")))))
