@@ -157,6 +157,32 @@ wt-cd() {
 
   cd "$wt_dir" || return 1
 }
+
+wt-remove() {
+  local name="$1"
+  local main_root wt_dir branch
+
+  if [ -z "$name" ]; then
+    echo "Usage: wt-remove <worktree-name>"
+    return 1
+  fi
+
+  main_root="$(_wt_main_root)" || return 1
+  wt_dir="$(_wt_dir "$name")" || return 1
+
+  if [ ! -d "$wt_dir" ]; then
+    echo "Worktree not found: $wt_dir"
+    return 1
+  fi
+
+  branch="$(git -C "$wt_dir" branch --show-current)"
+
+  git -C "$main_root" worktree remove "$wt_dir" || return 1
+
+  if [ -n "$branch" ]; then
+    git -C "$main_root" branch -D "$branch"
+  fi
+}
 ```
 
 The idea is to capture this target behaviour and implement in `let-go` (https://github.com/nooga/let-go).
@@ -169,7 +195,6 @@ Eventually, we would need few commands:
 ```bash
 wtr list  # lists all worktrees
 wtr create <name>  # creates a new worktree with the given name
-wtr cd <name>  # changes directory to the given worktree or main worktree if name is "master" or "main"
 wtr run <name> <command...>  # runs the given command in the given existing worktree
 wtr switch <name>  # switches to the given worktree in detached mode (!)
 wtr remove <name>  # removes the given worktree
