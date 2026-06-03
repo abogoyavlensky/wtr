@@ -137,3 +137,30 @@
             (print stderr)
             (println "Error:" (ex-message e)))))
       (os/exit 1))))
+
+(defn switch
+  "Switch the main worktree to a worktree's branch.
+   `master`/`main` re-attach the main worktree to that branch; any other name
+   detaches the main worktree at the matching worktree's branch tip, so its code
+   can be read/built/run from the main project dir without claiming the branch."
+  [{:keys [args]}]
+  (try
+    (let [name (:name args)
+          wts (git/worktrees)
+          main (:path (first wts))
+          target (resolve-switch-target wts name)]
+      (when-not target
+        (error-exit (str "Worktree not found: " name)))
+      (git/switch-ref! main (:ref target) (= :detach (:mode target)))
+      (if (= :detach (:mode target))
+        (println (str "Switched main worktree to '" (:label target)
+                      "' (detached at " (subs (:sha target) 0 7)
+                      "). Run 'wtr switch master' to return."))
+        (println "Switched main worktree to" (:ref target))))
+    (catch e :default
+      (let [stderr (:stderr (ex-data e))]
+        (binding [*out* *err*]
+          (if stderr
+            (print stderr)
+            (println "Error:" (ex-message e)))))
+      (os/exit 1))))

@@ -33,7 +33,12 @@
                        :doc "Worktree name, or master/main for the main worktree."}]
                :variadic {:key :cmd
                           :doc "Command to run; omit to open a shell."}
-               :run cmds/run}]})
+               :run cmds/run}
+              {:name "switch"
+               :doc "Switch the main worktree to a worktree's branch (detached)."
+               :args [{:key :name
+                       :doc "Worktree name, or master/main to re-attach the main worktree."}]
+               :run cmds/switch}]})
 
 (defn- cli-argv [argv]
   "Application args, robust across dev (`lgx run`) and bundled-binary modes.
