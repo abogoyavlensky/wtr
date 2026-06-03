@@ -154,12 +154,12 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 **Files:**
 - Modify: `src/wtr/git.lg`
 
-- [ ] **Step 1: Implement `remove-worktree!`** per Design — conditional `--force`, `os/sh`, throw `ex-info {:stderr (:err result) :stdout (:out result)}` on non-zero (mirror `switch-ref!`).
-- [ ] **Step 2: Implement `delete-branch!`** per Design — `(if force? "-D" "-d")`, `os/sh`, **return** the result map (no throw).
-- [ ] **Step 3: Sanity-check it compiles**
+- [x] **Step 1: Implement `remove-worktree!`** per Design — conditional `--force`, `os/sh`, throw `ex-info {:stderr (:err result) :stdout (:out result)}` on non-zero (mirror `switch-ref!`).
+- [x] **Step 2: Implement `delete-branch!`** per Design — `(if force? "-D" "-d")`, `os/sh`, **return** the result map (no throw).
+- [x] **Step 3: Sanity-check it compiles**
   Run: `LGX test`
   Expected: PASS (existing suite still green; no new unit test — git side-effects are smoke-tested in Task 4, consistent with `create-worktree!`/`switch-ref!`).
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `git commit -m "Add git/remove-worktree! and git/delete-branch!"`
 
 ### Task 2: wtr — resolve-remove-target (pure resolver)

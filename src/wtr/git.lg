@@ -76,3 +76,24 @@
                       {:stderr (:err result)
                        :stdout (:out result)})))
     result))
+
+(defn remove-worktree!
+  "Runs `git -C <main-path> worktree remove [--force] <wt-path>`.
+   Throws ex-info with git's stderr/stdout on non-zero exit."
+  [main-path wt-path force?]
+  (let [args (concat ["git" "-C" main-path "worktree" "remove"]
+                     (when force? ["--force"])
+                     [wt-path])
+        result (apply os/sh args)]
+    (when-not (zero? (:exit result))
+      (throw (ex-info "git worktree remove failed"
+                      {:stderr (:err result)
+                       :stdout (:out result)})))
+    result))
+
+(defn delete-branch!
+  "Runs `git -C <main-path> branch (-d|-D) <branch>`.
+   Returns the os/sh result map so callers can treat safe-delete refusals as
+   non-fatal."
+  [main-path branch force?]
+  (os/sh "git" "-C" main-path "branch" (if force? "-D" "-d") branch))
