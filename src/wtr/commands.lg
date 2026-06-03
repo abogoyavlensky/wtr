@@ -64,6 +64,19 @@
                   (str/replace branch #"^refs/heads/" ""))]
         {:mode :detach :ref ref :label name :sha (:head w)}))))
 
+(defn main-return-branch
+  "The branch token to advise the user to `wtr switch` back to, given the main
+   worktree record `main-wt` (first of `git/worktrees`). Uses its current branch
+   when the main worktree is attached (the common case — captured before we
+   detach it); when it is already detached (no :branch), probes for a `main`
+   branch, else falls back to `master`."
+  [main-wt]
+  (let [b (:branch main-wt)]
+    (cond
+      (not (str/blank? (or b ""))) (str/replace b #"^refs/heads/" "")
+      (git/branch-exists? "main") "main"
+      :else "master")))
+
 (defn list
   "List worktrees."
   [context]
@@ -155,7 +168,8 @@
       (if (= :detach (:mode target))
         (println (str "Switched main worktree to '" (:label target)
                       "' (detached at " (subs (:sha target) 0 7)
-                      "). Run 'wtr switch master' to return."))
+                      "). Run 'wtr switch " (main-return-branch (first wts))
+                      "' to return."))
         (println "Switched main worktree to" (:ref target))))
     (catch e :default
       (let [stderr (:stderr (ex-data e))]

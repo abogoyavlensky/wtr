@@ -80,3 +80,8 @@
 (deftest resolve-switch-target-not-found
   (testing "returns nil when no worktree matches"
     (is (nil? (cmds/resolve-switch-target switch-wts "nope")))))
+
+(deftest main-return-branch-from-attached-main
+  (testing "uses the attached main worktree's branch (refs/heads/ stripped)"
+    (is (= "main" (cmds/main-return-branch {:branch "refs/heads/main"})))
+    (is (= "master" (cmds/main-return-branch {:branch "refs/heads/master"})))))
