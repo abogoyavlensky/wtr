@@ -106,6 +106,32 @@ Note: this reflects the branch's **committed** state. Uncommitted changes still
 living in the feature worktree won't appear — git can't share a working tree
 across worktrees.
 
+### `wtr config`
+
+Read-only: prints the config file path and its content.
+
+```bash
+$ wtr config
+Config: /Users/andrew/.config/wtr/config.toml
+
+base_dir = "/Users/andrew/Projects/worktrees"
+```
+
+When the config file doesn't exist yet (it's only written on the first
+`wtr create`), it prints the path along with the default `base_dir` that the
+first `create` would use:
+
+```bash
+$ wtr config
+Config: /Users/andrew/.config/wtr/config.toml (not created yet)
+
+Default base_dir: /Users/andrew/Projects/worktrees
+Run 'wtr create <name>' to initialize it.
+```
+
+The content is shown verbatim (no parsing), and the command always reports the
+on-disk file — it ignores `--base-dir`.
+
 ## Configuration
 
 Config file: `~/.config/wtr/config.toml`
