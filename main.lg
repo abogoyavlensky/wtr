@@ -13,7 +13,7 @@
            :long "base-dir"
            :value? true
            :doc "Override base directory for worktrees."}]
-   :footer (str "Run 'wtr help COMMAND' for more information on a command"
+   :footer (str "Run 'wtr help COMMAND' for more information on a command."
               "\nSee https://github.com/abogoyavlensky/wtr for more information.")
    :commands [{:name "list"
                :doc "List worktrees."
@@ -39,9 +39,6 @@
                :args [{:key :name
                        :doc "Worktree name, or master/main to re-attach the main worktree."}]
                :run cmds/switch}
-              {:name "config"
-               :doc "Show the config file path and its content."
-               :run cmds/config}
               {:name "remove"
                :doc "Remove a worktree and clean up its branch."
                :args [{:key :name
@@ -49,7 +46,10 @@
                :opts [{:key :force
                        :long "force"
                        :doc "Force removal of a dirty worktree and force-delete the branch."}]
-               :run cmds/remove}]})
+               :run cmds/remove}
+              {:name "config"
+               :doc "Show the config file path and its content."
+               :run cmds/config}]})
 
 (defn- cli-argv [argv]
   "Application args, robust across dev (`lgx run`) and bundled-binary modes.
