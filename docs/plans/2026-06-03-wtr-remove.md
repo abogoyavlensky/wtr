@@ -1,5 +1,7 @@
 # wtr remove — Implementation Plan
 
+Status: Completed
+
 > **For agentic workers:** Use executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `wtr remove <name> [--force]` — remove a worktree and clean up its branch, safe by default (refuses on dirty worktree / unmerged branch) with `--force` to escalate.
@@ -202,23 +204,23 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 
 > **Caution:** run the matrix against a throwaway scratch repo, never the live wtr checkout — `remove` deletes worktrees and branches.
 
-- [ ] **Step 1: Setup** — `git clone <repo> /tmp/wtr-rm-repo`; from it, create worktrees under a temp base with `./bin/wtr --base-dir /tmp/wtr-rm-base create <name>`. Prepare: one branch with no unique commits (deletes cleanly with `-d`), one with an unmerged commit, and one with a dirty/uncommitted file.
-- [ ] **Step 2: Run the matrix** against `./bin/wtr` from the scratch repo dir:
+- [x] **Step 1: Setup** — `git clone <repo> /tmp/wtr-rm-repo`; from it, create worktrees under a temp base with `./bin/wtr --base-dir /tmp/wtr-rm-base create <name>`. Prepare: one branch with no unique commits (deletes cleanly with `-d`), one with an unmerged commit, and one with a dirty/uncommitted file.
+- [x] **Step 2: Run the matrix** against `./bin/wtr` from the scratch repo dir:
   - `remove <merged>` → `Removed worktree … and branch <merged>.`; `git worktree list` and `git branch` confirm both gone.
   - `remove <unmerged>` (no `--force`) → worktree removed, branch **kept** with the note, exit 0; `git branch` shows it survives.
   - `remove <unmerged> --force` → branch now deleted.
   - dirty worktree, no `--force` → git's "contains modified or untracked files" error, exit 1; then `--force` removes it.
   - `remove master` / `remove main` → `Error: Refusing to remove the main worktree`, exit 1; main worktree intact.
   - `remove nope` → `Error: Worktree not found: nope`, exit 1.
-- [ ] **Step 3: Cleanup** — remove the scratch repo, temp base, and any leftover worktrees/branches; `rm -rf /tmp/wtr-rm-repo /tmp/wtr-rm-base`.
+- [x] **Step 3: Cleanup** — remove the scratch repo, temp base, and any leftover worktrees/branches; `rm -rf /tmp/wtr-rm-repo /tmp/wtr-rm-base`.
 
 ### Task 5: wtr — README
 
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Document `remove`** — add a `### wtr remove <name>` section after `wtr config`: removes a worktree and cleans up its branch, the safe-by-default behavior (refuses dirty worktree / unmerged branch; branch kept with a note), `--force` to escalate, the main-worktree refusal, and that names resolve against `git worktree list` like the other commands.
-- [ ] **Step 2: Commit**
+- [x] **Step 1: Document `remove`** — add a `### wtr remove <name>` section after `wtr config`: removes a worktree and cleans up its branch, the safe-by-default behavior (refuses dirty worktree / unmerged branch; branch kept with a note), `--force` to escalate, the main-worktree refusal, and that names resolve against `git worktree list` like the other commands.
+- [x] **Step 2: Commit**
   `git commit -m "Document wtr remove"`
 
 ## Risks and Notes
@@ -234,3 +236,15 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 - Removing multiple worktrees in one call / globbing.
 - A separate flag to keep the branch (`--keep-branch`) — default already keeps an unmerged branch; a merged branch is cheap to recreate.
 - Pruning stale worktree metadata (`git worktree prune`).
+
+## Implementation Summary
+
+Completed on 2026-06-03.
+
+- Added git helpers for removing worktrees and deleting branches.
+- Added the pure `resolve-remove-target` resolver with unit coverage for main-worktree guards, namespaced names, detached worktrees, and missing targets.
+- Added `wtr remove <name> [--force]` and wired it into CLI help.
+- Verified with `LGX test`, `LGX build`, `./bin/wtr help remove`, and an end-to-end smoke matrix in a throwaway `/tmp` clone.
+- Documented `wtr remove` in the README.
+
+One smoke-test adjustment was needed: after a safe unmerged removal, the worktree no longer exists, so the force-unmerged path was verified with a separate unmerged worktree.

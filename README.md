@@ -132,6 +132,30 @@ Run 'wtr create <name>' to initialize it.
 The content is shown verbatim (no parsing), and the command always reports the
 on-disk file — it ignores `--base-dir`.
 
+### `wtr remove <name>`
+
+Removes the named worktree and then deletes its branch.
+
+```bash
+$ wtr remove feature-x
+Removed worktree /Users/andrew/Projects/worktrees/wtr/feature-x and branch feature-x.
+
+$ wtr remove throwaway --force
+Removed worktree /Users/andrew/Projects/worktrees/wtr/throwaway and branch throwaway.
+```
+
+By default, `remove` lets git protect your work. Git refuses to remove a dirty
+worktree, and `wtr` stops before touching the branch. If the worktree is clean
+but the branch has commits that are not merged, `wtr` removes the worktree,
+keeps the branch, and prints a note with git's reason.
+
+Use `--force` only for throwaway work. It passes `--force` to
+`git worktree remove` and deletes the branch with `git branch -D`.
+
+`wtr remove master` and `wtr remove main` are always refused because they target
+the main worktree. Names resolve against `git worktree list`, like `run` and
+`switch`, so namespaced worktrees such as `feature/bar` work.
+
 ## Configuration
 
 Config file: `~/.config/wtr/config.toml`
