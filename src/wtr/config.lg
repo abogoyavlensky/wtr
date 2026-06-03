@@ -87,6 +87,20 @@
   [main-worktree-path]
   (str (parent-dir main-worktree-path) "/worktrees"))
 
+(defn render-config
+  "Pure renderer for `wtr config`. When `content` is non-nil the config file
+   exists: returns `Config: <path>` then the raw content (trailing whitespace
+   trimmed; `default` is ignored). When `content` is nil the file is missing:
+   returns the path with a `(not created yet)` note, the would-be `default`
+   base_dir, and a hint to run `wtr create`. The result has no trailing
+   newline — the caller prints it."
+  [path content default]
+  (if content
+    (str "Config: " path "\n\n" (str/trimr content))
+    (str "Config: " path " (not created yet)\n\n"
+         "Default base_dir: " default "\n"
+         "Run 'wtr create <name>' to initialize it.")))
+
 (defn ensure-config!
   "Returns the base-dir to use. Resolution order:
    1. override-base-dir (validated, returned as-is)

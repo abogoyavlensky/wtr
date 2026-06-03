@@ -34,6 +34,20 @@
   (is (= "/Users/andrew/Projects/worktrees"
          (config/default-base-dir "/Users/andrew/Projects/wtr"))))
 
+(deftest render-config-existing-file
+  (testing "shows the path then the raw content, trailing newline trimmed"
+    (is (= "Config: /h/.config/wtr/config.toml\n\nbase_dir = \"/x\""
+           (config/render-config "/h/.config/wtr/config.toml"
+                                 "base_dir = \"/x\"\n" nil)))))
+
+(deftest render-config-missing-file
+  (testing "shows the path, not-created note, would-be default, and create hint"
+    (let [out (config/render-config "/h/.config/wtr/config.toml" nil
+                                    "/x/worktrees")]
+      (is (str/includes? out "Config: /h/.config/wtr/config.toml (not created yet)"))
+      (is (str/includes? out "Default base_dir: /x/worktrees"))
+      (is (str/includes? out "Run 'wtr create <name>' to initialize it.")))))
+
 (defn- tempdir []
   (let [base (os/temp-dir)
         suffix (str "wtr-config-test-" (rand-int 1000000))]
