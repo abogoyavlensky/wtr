@@ -60,3 +60,19 @@
                       {:stderr (:err result)
                        :stdout (:out result)})))
     result))
+
+(defn switch-ref!
+  "Runs `git -C <main-path> switch [--detach] <ref>` to move the main worktree's
+   HEAD. With `detach?` true, detaches at `ref` (used to land on a feature
+   worktree's branch tip without claiming the branch); otherwise re-attaches to
+   the branch named `ref`. Throws ex-info with git's stderr on non-zero exit."
+  [main-path ref detach?]
+  (let [args (concat ["git" "-C" main-path "switch"]
+                     (when detach? ["--detach"])
+                     [ref])
+        result (apply os/sh args)]
+    (when-not (zero? (:exit result))
+      (throw (ex-info "git switch failed"
+                      {:stderr (:err result)
+                       :stdout (:out result)})))
+    result))
