@@ -1,6 +1,6 @@
 # wtr switch — Implementation Plan
 
-> **For agentic workers:** Use executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Use executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add `wtr switch <name>` — flip the **main** worktree to a detached HEAD at a target worktree's branch tip so you can read/build/run that branch's code from your fully-set-up main project dir; `wtr switch master` (or `main`) re-attaches the main worktree to its branch as usual.
 
@@ -129,20 +129,20 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 - Modify: `src/wtr/commands.lg`
 - Test: `test/wtr/commands_test.lg`
 
-- [ ] **Step 1: Write failing tests** in `commands_test.lg`. Extend `sample-wts` so non-main records carry `:branch` and `:head`, plus one detached record (`:head` present, no `:branch`):
+- [x] **Step 1: Write failing tests** in `commands_test.lg`. Extend `sample-wts` so non-main records carry `:branch` and `:head`, plus one detached record (`:head` present, no `:branch`):
   - `master` → `{:mode :reattach :ref "master"}`; `main` → `{:mode :reattach :ref "main"}`.
   - `feat-x` (branch `refs/heads/feat-x`, head `"8a1b2c3…"`) → `{:mode :detach :ref "feat-x" :label "feat-x" :sha "8a1b2c3…"}` (verifies `refs/heads/` stripping).
   - `feature/bar` (path `…/wtr/feature/bar`, branch `refs/heads/feature/bar`) → `:mode :detach`, `:ref "feature/bar"`, `:label "feature/bar"` (namespaced suffix match).
   - a detached worktree (no `:branch`) → `:ref` equals its `:head` sha.
   - `nope` → `nil`.
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
   Run: `LGX test`
   Expected: FAIL (`resolve-switch-target` undefined).
-- [ ] **Step 3: Implement `resolve-switch-target`** in `commands.lg` per Design §2. Reuse the existing suffix-match shape from `resolve-worktree-path`; strip a leading `refs/heads/` from `:branch` (e.g. `(str/replace branch #"^refs/heads/" "")`); fall back to `:head` when `:branch` is absent.
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 3: Implement `resolve-switch-target`** in `commands.lg` per Design §2. Reuse the existing suffix-match shape from `resolve-worktree-path`; strip a leading `refs/heads/` from `:branch` (e.g. `(str/replace branch #"^refs/heads/" "")`); fall back to `:head` when `:branch` is absent.
+- [x] **Step 4: Run tests, verify they pass**
   Run: `LGX test`
   Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "Add resolve-switch-target resolver"`
 
 ### Task 2: wtr — git/switch-ref!
@@ -150,11 +150,11 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 **Files:**
 - Modify: `src/wtr/git.lg`
 
-- [ ] **Step 1: Implement `switch-ref!`** per Design §3 — assemble the arg vector with a conditional `"--detach"`, run via `os/sh`, throw `ex-info` with `{:stderr (:err result) :stdout (:out result)}` on non-zero exit (mirror `create-worktree!`).
-- [ ] **Step 2: Sanity-check it compiles / loads**
+- [x] **Step 1: Implement `switch-ref!`** per Design §3 — assemble the arg vector with a conditional `"--detach"`, run via `os/sh`, throw `ex-info` with `{:stderr (:err result) :stdout (:out result)}` on non-zero exit (mirror `create-worktree!`).
+- [x] **Step 2: Sanity-check it compiles / loads**
   Run: `LGX test`
   Expected: PASS (existing suite still green; no new test — live-git side-effects are smoke-tested in Task 4, consistent with `create-worktree!`).
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `git commit -m "Add git/switch-ref!"`
 
 ### Task 3: wtr — switch command + wiring
@@ -162,36 +162,36 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 **Files:**
 - Modify: `src/wtr/commands.lg`, `main.lg`
 
-- [ ] **Step 1: Implement `cmds/switch`** per Design §4 — resolve, `error-exit` on `nil`, call `git/switch-ref!`, print the mode-specific one-liner, with the shared `create`/`run` catch block.
-- [ ] **Step 2: Wire into `main.lg`** — add a `switch` entry to `:commands` with `:doc "Switch the main worktree to a worktree's branch (detached)."`, one arg `{:key :name :doc "Worktree name, or master/main to re-attach the main worktree."}`, and `:run cmds/switch`.
-- [ ] **Step 3: Build the binary**
+- [x] **Step 1: Implement `cmds/switch`** per Design §4 — resolve, `error-exit` on `nil`, call `git/switch-ref!`, print the mode-specific one-liner, with the shared `create`/`run` catch block.
+- [x] **Step 2: Wire into `main.lg`** — add a `switch` entry to `:commands` with `:doc "Switch the main worktree to a worktree's branch (detached)."`, one arg `{:key :name :doc "Worktree name, or master/main to re-attach the main worktree."}`, and `:run cmds/switch`.
+- [x] **Step 3: Build the binary**
   Run: `LGX build`
   Expected: builds `bin/wtr`; `./bin/wtr help switch` shows the command and its arg.
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `git commit -m "Add wtr switch command"`
 
 ### Task 4: wtr — end-to-end smoke tests (built binary)
 
 > **Caution:** `switch <name>` detaches the **main worktree it is run from** — i.e. your live wtr checkout. Run this matrix from a scratch clone (`git clone . /tmp/wtr-smoke-repo`), not the dir you are developing in, to avoid a confusing detached-HEAD surprise mid-development. Step 3's cleanup re-attaches regardless.
 
-- [ ] **Step 1: Setup** — from the wtr repo, create a couple of worktrees under a temp base, e.g.
+- [x] **Step 1: Setup** — from the wtr repo, create a couple of worktrees under a temp base, e.g.
   `./bin/wtr --base-dir /tmp/wtr-smoke create smoke-switch` and
   `./bin/wtr --base-dir /tmp/wtr-smoke create feature/bar`.
-- [ ] **Step 2: Run the matrix** against `./bin/wtr` from the main repo dir:
+- [x] **Step 2: Run the matrix** against `./bin/wtr` from the main repo dir:
   - `switch smoke-switch` → prints `Switched main worktree to 'smoke-switch' (detached at …). Run 'wtr switch master' to return.`; `git -C . status` shows detached HEAD at the branch tip; `git worktree list` shows the main worktree detached.
   - `switch master` → prints `Switched main worktree to master`; main worktree re-attached to `master`.
   - `switch feature/bar` → namespaced name resolves and detaches; then `switch master` to return.
   - `switch nope` → `Error: Worktree not found: nope`, rc 1.
   - (Optional) dirty-state: make an uncommitted edit in the main worktree, `switch smoke-switch`, confirm git's own refuse/carry message surfaces and rc reflects it.
-- [ ] **Step 3: Cleanup** — `wtr switch master` to leave the repo attached; remove the temp worktrees + branches and `/tmp/wtr-smoke` (`git worktree remove` + `git branch -D`, or a future `wtr remove`).
+- [x] **Step 3: Cleanup** — `wtr switch master` to leave the repo attached; remove the temp worktrees + branches and `/tmp/wtr-smoke` (`git worktree remove` + `git branch -D`, or a future `wtr remove`).
 
 ### Task 5: wtr — README
 
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Document `switch`** — add a `### wtr switch <name>` section after `wtr run`: what detached-switch is for (inspect/build a branch from your set-up main dir), an example showing the detach + `wtr switch master` round trip, the master/main shadowing note (consistent with `run`), and the caveat that it reflects the branch's **committed** state (uncommitted changes in the feature worktree won't show).
-- [ ] **Step 2: Commit**
+- [x] **Step 1: Document `switch`** — add a `### wtr switch <name>` section after `wtr run`: what detached-switch is for (inspect/build a branch from your set-up main dir), an example showing the detach + `wtr switch master` round trip, the master/main shadowing note (consistent with `run`), and the caveat that it reflects the branch's **committed** state (uncommitted changes in the feature worktree won't show).
+- [x] **Step 2: Commit**
   `git commit -m "Document wtr switch"`
 
 ## Risks and Notes
@@ -208,3 +208,38 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 - A dirty-worktree guard / auto-stash — defer to git's native behavior.
 - Honoring `--base-dir` for resolution (config-free by design).
 - Disambiguating two worktrees that share a name suffix (first match wins; same documented edge as `run`).
+
+## Outcome (2026-06-03)
+
+`wtr switch <name>` implemented and verified end-to-end. Single-repo change, no
+release blocker. Commits on `master`:
+
+- `32e8be5` — `resolve-switch-target` pure resolver + unit tests.
+- `14e1d4f` — `git/switch-ref!` (mirrors `create-worktree!`).
+- `37eea56` — `switch` command + `main.lg` wiring.
+- `ee44b32` — codex review fix (see below).
+- `374b3bf` — README section.
+
+Final suite: **29 tests, 54 assertions, 0 failures.**
+
+**Codex second-opinion review** (`review-with-codex`, scope `--base 278555d`)
+returned four findings; three were false positives on unchanged pre-existing
+code (`lgx.edn` is already a published `:git/tag`, not `:local/root`;
+`resolve-worktree-path` already suffix-matches namespaced names;
+`strip-runner-args` already requires both `LGX_RUN` and a `--` marker). One was
+valid and in-scope and was fixed:
+
+- The detach hint hardcoded *"Run 'wtr switch master' to return"*, which is wrong
+  on a `main`-default repo. Now derived via `main-return-branch` from the main
+  worktree's actual branch (captured before detaching); when the main worktree is
+  already detached, it probes for a `main` branch, else falls back to `master`.
+  Covered by a unit test (attached case) and verified live below.
+
+**Smoke matrix** (built binary, throwaway scratch repos — never the live
+checkout):
+- master-default clone: detach shows `HEAD (no branch)` with main HEAD == the
+  worktree's branch tip; `switch master` re-attaches (`## master...`); namespaced
+  `feature/bar` detaches and returns; `switch nope` → `Error: Worktree not found:
+  nope`, rc 1; hint reads `master`.
+- main-default repo: `switch wt1` hint reads **`Run 'wtr switch main' to
+  return.`**; `switch main` re-attaches to `main`. Confirms the hint fix.
