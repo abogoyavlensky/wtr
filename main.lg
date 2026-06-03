@@ -38,7 +38,10 @@
                :doc "Switch the main worktree to a worktree's branch (detached)."
                :args [{:key :name
                        :doc "Worktree name, or master/main to re-attach the main worktree."}]
-               :run cmds/switch}]})
+               :run cmds/switch}
+              {:name "config"
+               :doc "Show the config file path and its content."
+               :run cmds/config}]})
 
 (defn- cli-argv [argv]
   "Application args, robust across dev (`lgx run`) and bundled-binary modes.

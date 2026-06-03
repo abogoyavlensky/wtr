@@ -178,3 +178,21 @@
             (print stderr)
             (println "Error:" (ex-message e)))))
       (os/exit 1))))
+
+(defn config
+  "Show the config file path and its content (read-only). When the file does
+   not exist yet, shows the path and the would-be default base_dir instead."
+  [context]
+  (try
+    (let [path (config/config-path)]
+      (if (file-exists? path)
+        (println (config/render-config path (slurp path) nil))
+        (println (config/render-config
+                  path nil (config/default-base-dir (git/main-worktree-path))))))
+    (catch e :default
+      (let [stderr (:stderr (ex-data e))]
+        (binding [*out* *err*]
+          (if stderr
+            (print stderr)
+            (println "Error:" (ex-message e)))))
+      (os/exit 1))))
