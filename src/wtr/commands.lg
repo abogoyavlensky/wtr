@@ -1,5 +1,5 @@
 (ns wtr.commands
-  (:refer-clojure :exclude [list])
+  (:refer-clojure :exclude [list remove])
   (:require [tiny-cli.core :as cli]
             [os :as os]
             [clojure.string :as str]
@@ -84,6 +84,14 @@
             {:path (:path w)
              :branch (when-not (str/blank? (or branch ""))
                        (str/replace branch #"^refs/heads/" ""))}))))))
+
+(defn- first-nonblank-line
+  [s fallback]
+  (or (some (fn [line]
+              (let [trimmed (str/trim line)]
+                (when-not (str/blank? trimmed) trimmed)))
+            (str/split (or s "") #"\n"))
+      fallback))
 
 (defn main-return-branch
   "The branch token to advise the user to `wtr switch` back to, given the main
@@ -192,6 +200,45 @@
                       "). Run 'wtr switch " (main-return-branch (first wts))
                       "' to return."))
         (println "Switched main worktree to" (:ref target))))
+    (catch e :default
+      (let [stderr (:stderr (ex-data e))]
+        (binding [*out* *err*]
+          (if stderr
+            (print stderr)
+            (println "Error:" (ex-message e)))))
+      (os/exit 1))))
+
+(defn remove
+  "Remove a worktree and clean up its branch."
+  [{:keys [args opts]}]
+  (try
+    (let [name (:name args)
+          force? (:force opts)
+          wts (git/worktrees)
+          main (:path (first wts))
+          target (resolve-remove-target wts name)]
+      (cond
+        (nil? target)
+        (error-exit (str "Worktree not found: " name))
+
+        (:main? target)
+        (error-exit (str "Refusing to remove the main worktree: " name))
+
+        :else
+        (do
+          (git/remove-worktree! main (:path target) force?)
+          (let [branch (:branch target)]
+            (if branch
+              (let [res (git/delete-branch! main branch force?)]
+                (if (zero? (:exit res))
+                  (println (str "Removed worktree " (:path target)
+                                " and branch " branch "."))
+                  (println (str "Removed worktree " (:path target)
+                                ". Kept branch '" branch "': "
+                                (first-nonblank-line (:err res)
+                                                     "could not delete branch")
+                                " Re-run with --force to delete it."))))
+              (println (str "Removed worktree " (:path target) ".")))))))
     (catch e :default
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]

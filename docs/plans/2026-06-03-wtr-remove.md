@@ -190,12 +190,12 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 **Files:**
 - Modify: `src/wtr/commands.lg`, `main.lg`
 
-- [ ] **Step 1: Implement `cmds/remove`** per Design — `[{:keys [args opts]}]`; resolve; `cond` for not-found / main-worktree / else; `git/remove-worktree!` then (if branch) `git/delete-branch!` with the zero/non-zero message split (kept-branch is exit 0); shared try/catch.
-- [ ] **Step 2: Wire into `main.lg`** — add a `remove` entry to `:commands` after `config`: `:doc "Remove a worktree and clean up its branch."`, one arg `{:key :name :doc "Worktree name to remove."}`, one opt `{:key :force :long "force" :doc "Force removal of a dirty worktree and force-delete the branch."}` (boolean — no `:value?`), `:run cmds/remove`.
-- [ ] **Step 3: Build the binary**
+- [x] **Step 1: Implement `cmds/remove`** per Design — `[{:keys [args opts]}]`; resolve; `cond` for not-found / main-worktree / else; `git/remove-worktree!` then (if branch) `git/delete-branch!` with the zero/non-zero message split (kept-branch is exit 0); shared try/catch.
+- [x] **Step 2: Wire into `main.lg`** — add a `remove` entry to `:commands` after `config`: `:doc "Remove a worktree and clean up its branch."`, one arg `{:key :name :doc "Worktree name to remove."}`, one opt `{:key :force :long "force" :doc "Force removal of a dirty worktree and force-delete the branch."}` (boolean — no `:value?`), `:run cmds/remove`.
+- [x] **Step 3: Build the binary**
   Run: `LGX build`
   Expected: builds `bin/wtr`; `./bin/wtr help remove` shows the command, its arg, and `--force`.
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `git commit -m "Add wtr remove command"`
 
 ### Task 4: wtr — end-to-end smoke tests (built binary)

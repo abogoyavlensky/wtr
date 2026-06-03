@@ -41,7 +41,15 @@
                :run cmds/switch}
               {:name "config"
                :doc "Show the config file path and its content."
-               :run cmds/config}]})
+               :run cmds/config}
+              {:name "remove"
+               :doc "Remove a worktree and clean up its branch."
+               :args [{:key :name
+                       :doc "Worktree name to remove."}]
+               :opts [{:key :force
+                       :long "force"
+                       :doc "Force removal of a dirty worktree and force-delete the branch."}]
+               :run cmds/remove}]})
 
 (defn- cli-argv [argv]
   "Application args, robust across dev (`lgx run`) and bundled-binary modes.
