@@ -78,6 +78,34 @@ alias.
 Note: an interactive shell needs the built binary (`./bin/wtr run …`). Under
 `lgx run` the dev runner buffers stdio, so a nested shell won't be interactive.
 
+### `wtr switch <name>`
+
+Points your **main** worktree at another worktree's branch, in detached HEAD,
+so you can read, build, and run that branch's code from the main project dir —
+where your environment, dependencies, and tooling already live — without
+disturbing the feature worktree. Git refuses a normal checkout of a branch
+that's already checked out elsewhere; detaching sidesteps that.
+
+```bash
+# Look at the feature-x branch from your main dir
+$ wtr switch feature-x
+Switched main worktree to 'feature-x' (detached at 8a1b2c3). Run 'wtr switch master' to return.
+
+# ...build, test, poke around, then go back
+$ wtr switch master
+Switched main worktree to master
+```
+
+`master` or `main` re-attach the main worktree to that branch as usual; the
+return hint names whichever branch the main worktree was on. As with `run`, the
+name resolves against `git worktree list` (so only existing worktrees match,
+namespaced names like `feature/bar` work, and a worktree literally named
+`master`/`main` is shadowed by the alias).
+
+Note: this reflects the branch's **committed** state. Uncommitted changes still
+living in the feature worktree won't appear — git can't share a working tree
+across worktrees.
+
 ## Configuration
 
 Config file: `~/.config/wtr/config.toml`
