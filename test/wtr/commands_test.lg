@@ -47,3 +47,36 @@
 (deftest resolve-worktree-path-not-found
   (testing "returns nil when nothing matches"
     (is (nil? (cmds/resolve-worktree-path sample-wts "nope")))))
+
+(def switch-wts
+  [{:path "/Users/u/Projects/wtr" :branch "refs/heads/master" :head "aaaaaaa1111"}
+   {:path "/Users/u/Projects/worktrees/wtr/feat-x"
+    :branch "refs/heads/feat-x" :head "8a1b2c3def4"}
+   {:path "/Users/u/Projects/worktrees/wtr/feature/bar"
+    :branch "refs/heads/feature/bar" :head "ccccccc3333"}
+   {:path "/Users/u/Projects/worktrees/wtr/loose"
+    :detached? true :head "ddddddd4444"}])
+
+(deftest resolve-switch-target-reattach
+  (testing "master is a reserved reattach token"
+    (is (= {:mode :reattach :ref "master"}
+           (cmds/resolve-switch-target switch-wts "master"))))
+  (testing "main is a reserved reattach token"
+    (is (= {:mode :reattach :ref "main"}
+           (cmds/resolve-switch-target switch-wts "main")))))
+
+(deftest resolve-switch-target-detach
+  (testing "matching worktree detaches at its branch tip (refs/heads/ stripped)"
+    (is (= {:mode :detach :ref "feat-x" :label "feat-x" :sha "8a1b2c3def4"}
+           (cmds/resolve-switch-target switch-wts "feat-x"))))
+  (testing "namespaced name resolves by path suffix"
+    (is (= {:mode :detach :ref "feature/bar" :label "feature/bar"
+            :sha "ccccccc3333"}
+           (cmds/resolve-switch-target switch-wts "feature/bar"))))
+  (testing "a detached worktree (no :branch) falls back to its head sha"
+    (is (= {:mode :detach :ref "ddddddd4444" :label "loose" :sha "ddddddd4444"}
+           (cmds/resolve-switch-target switch-wts "loose")))))
+
+(deftest resolve-switch-target-not-found
+  (testing "returns nil when no worktree matches"
+    (is (nil? (cmds/resolve-switch-target switch-wts "nope")))))

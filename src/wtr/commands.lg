@@ -36,6 +36,34 @@
     (some (fn [w] (when (str/ends-with? (:path w) (str "/" name)) (:path w)))
           wts)))
 
+(defn resolve-switch-target
+  "Map (worktrees `wts`, `name`) to a switch intent for `wtr switch`, or nil when
+   no worktree matches.
+     master|main          -> {:mode :reattach :ref name}
+     a matching worktree  -> {:mode :detach :ref <branch|head> :label name
+                              :sha <head>}
+     otherwise            -> nil
+   `master`/`main` are reserved tokens (re-attach the main worktree), checked
+   before any worktree lookup, shadowing a worktree literally named that —
+   consistent with `run`. For detach, :ref is the worktree's branch (with a
+   leading `refs/heads/` stripped) so we land on the branch tip; a worktree that
+   is itself detached (no :branch) falls back to its :head sha. :sha is the
+   worktree's head, used only for the confirmation message (after
+   `git switch --detach <branch>` HEAD equals the branch tip equals this head)."
+  [wts name]
+  (cond
+    (or (= name "master") (= name "main"))
+    {:mode :reattach :ref name}
+
+    :else
+    (when-let [w (some (fn [w] (when (str/ends-with? (:path w) (str "/" name)) w))
+                       wts)]
+      (let [branch (:branch w)
+            ref (if (str/blank? (or branch ""))
+                  (:head w)
+                  (str/replace branch #"^refs/heads/" ""))]
+        {:mode :detach :ref ref :label name :sha (:head w)}))))
+
 (defn list
   "List worktrees."
   [context]
