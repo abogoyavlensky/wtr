@@ -76,17 +76,17 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 - Modify: `src/wtr/config.lg`
 - Test: `test/wtr/config_test.lg`
 
-- [ ] **Step 1: Write failing tests** in `config_test.lg`:
+- [x] **Step 1: Write failing tests** in `config_test.lg`:
   - exists: `(config/render-config "/h/.config/wtr/config.toml" "base_dir = \"/x\"\n" nil)` → `"Config: /h/.config/wtr/config.toml\n\nbase_dir = \"/x\""` (trailing newline of the content trimmed; no parsing).
   - missing: `(config/render-config "/h/.config/wtr/config.toml" nil "/x/worktrees")` → a string that contains the path, the `(not created yet)` note, `Default base_dir: /x/worktrees`, and the `Run 'wtr create` hint.
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
   Run: `LGX test`
   Expected: FAIL (`render-config` undefined).
-- [ ] **Step 3: Implement `render-config`** in `config.lg` per Design. Exists branch: `Config: <path>` + blank line + `(str/trimr content)`. Missing branch: `Config: <path> (not created yet)` + blank line + `Default base_dir: <default>` + newline + `Run 'wtr create <name>' to initialize it.`. The returned string has no trailing newline (the command `println`s it).
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 3: Implement `render-config`** in `config.lg` per Design. Exists branch: `Config: <path>` + blank line + `(str/trimr content)`. Missing branch: `Config: <path> (not created yet)` + blank line + `Default base_dir: <default>` + newline + `Run 'wtr create <name>' to initialize it.`. The returned string has no trailing newline (the command `println`s it).
+- [x] **Step 4: Run tests, verify they pass**
   Run: `LGX test`
   Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "Add config/render-config"`
 
 ### Task 2: config command + wiring
@@ -94,15 +94,15 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 **Files:**
 - Modify: `src/wtr/commands.lg`, `main.lg`
 
-- [ ] **Step 1: Implement `cmds/config`** in `commands.lg` per Design — `[context]` arg (unused, like `list`); resolve `(config/config-path)`; if `(file-exists? path)` print `(config/render-config path (slurp path) nil)`, else print `(config/render-config path nil (config/default-base-dir (git/main-worktree-path)))`; wrap in the shared `create`/`switch` `try`/`catch` (print `:stderr` when present, else `Error: <msg>`, then `os/exit 1`).
-- [ ] **Step 2: Wire into `main.lg`** — add a `config` entry to `:commands` after `switch`: `:name "config"`, `:doc "Show the config file path and its content."`, no `:args`, `:run cmds/config`.
-- [ ] **Step 3: Run tests + build**
+- [x] **Step 1: Implement `cmds/config`** in `commands.lg` per Design — `[context]` arg (unused, like `list`); resolve `(config/config-path)`; if `(file-exists? path)` print `(config/render-config path (slurp path) nil)`, else print `(config/render-config path nil (config/default-base-dir (git/main-worktree-path)))`; wrap in the shared `create`/`switch` `try`/`catch` (print `:stderr` when present, else `Error: <msg>`, then `os/exit 1`).
+- [x] **Step 2: Wire into `main.lg`** — add a `config` entry to `:commands` after `switch`: `:name "config"`, `:doc "Show the config file path and its content."`, no `:args`, `:run cmds/config`.
+- [x] **Step 3: Run tests + build**
   Run: `LGX test && LGX build`
   Expected: suite still green; `./bin/wtr help config` shows the command.
-- [ ] **Step 4: Smoke-check both branches** against `./bin/wtr`:
+- [x] **Step 4: Smoke-check both branches** against `./bin/wtr`:
   - With a config present (e.g. point `$HOME` at a temp dir holding `.config/wtr/config.toml`, or use your real one): `./bin/wtr config` prints `Config: <path>` then the file content.
   - With no config (temp `$HOME` with no config file, run from inside the repo): prints the `(not created yet)` note and `Default base_dir: …`.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "Add wtr config command"`
 
 ### Task 3: README
@@ -110,8 +110,8 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Document `config`** — add a `### wtr config` section (after `wtr switch`): read-only inspector that prints the config file path and content, the missing-file behavior (path + would-be default + create hint), and that it reports the on-disk file (ignores `--base-dir`).
-- [ ] **Step 2: Commit**
+- [x] **Step 1: Document `config`** — add a `### wtr config` section (after `wtr switch`): read-only inspector that prints the config file path and content, the missing-file behavior (path + would-be default + create hint), and that it reports the on-disk file (ignores `--base-dir`).
+- [x] **Step 2: Commit**
   `git commit -m "Document wtr config"`
 
 ## Out of scope (YAGNI)
@@ -119,3 +119,25 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 - Editing/initializing config (`config set`, `--init`) — `config` is read-only; `create` already initializes.
 - Surfacing the `--base-dir` override in the output — decided against; pure file inspector.
 - Validating/parsing the TOML for display — raw content is shown verbatim.
+
+## Outcome (2026-06-03)
+
+`wtr config` implemented and verified end-to-end. Single-repo change, no release
+blocker. Commits on `master`:
+
+- `a60e3a5` — `config/render-config` pure renderer + unit tests (both branches).
+- `45c99ed` — `config` command + `main.lg` wiring.
+- `fb32ff8` — README section.
+
+Final suite: **31 tests, 58 assertions, 0 failures.**
+
+**Codex second-opinion review** (`review-with-codex`, scope `--base c352d04`):
+clean — *"No introduced correctness issues were found in the changed lines. The
+new renderer and CLI wiring match the stated behavior."* Nothing to address.
+
+**Smoke checks** (built binary):
+- Missing config (temp `$HOME`, run from the repo): prints `Config: <path> (not
+  created yet)`, `Default base_dir: /Users/andrew/Projects/worktrees`, and the
+  `wtr create` hint; rc 0.
+- Existing config (temp `$HOME` with a `config.toml`): prints `Config: <path>`
+  then the raw file content; rc 0.
