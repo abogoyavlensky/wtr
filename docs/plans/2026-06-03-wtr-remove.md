@@ -168,21 +168,21 @@ For brevity below, `LGX` = `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andre
 - Modify: `src/wtr/commands.lg`
 - Test: `test/wtr/commands_test.lg`
 
-- [ ] **Step 1: Write failing tests** in `commands_test.lg`. Add a fixture of worktree records (main + non-main with `:branch`, a namespaced one, a detached one with no `:branch`):
+- [x] **Step 1: Write failing tests** in `commands_test.lg`. Add a fixture of worktree records (main + non-main with `:branch`, a namespaced one, a detached one with no `:branch`):
   - `master` / `main` → `{:main? true}`.
   - a name suffix-matching the **main** worktree (e.g. its dir basename) → `{:main? true}`.
   - `feat-x` (branch `refs/heads/feat-x`) → `{:path … :branch "feat-x"}` (verifies `refs/heads/` stripping).
   - `feature/bar` → `{:path … :branch "feature/bar"}` (namespaced suffix match).
   - a detached worktree (no `:branch`) → `{:path … :branch nil}`.
   - `nope` → `nil`.
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
   Run: `LGX test`
   Expected: FAIL (`resolve-remove-target` undefined).
-- [ ] **Step 3: Implement `resolve-remove-target`** per Design — reuse the suffix-match shape; compare the matched path to `main-path` for the `{:main? true}` guard; strip a leading `refs/heads/` from `:branch`, nil when absent.
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 3: Implement `resolve-remove-target`** per Design — reuse the suffix-match shape; compare the matched path to `main-path` for the `{:main? true}` guard; strip a leading `refs/heads/` from `:branch`, nil when absent.
+- [x] **Step 4: Run tests, verify they pass**
   Run: `LGX test`
   Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "Add resolve-remove-target resolver"`
 
 ### Task 3: wtr — remove command + wiring

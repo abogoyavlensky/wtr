@@ -85,3 +85,40 @@
   (testing "uses the attached main worktree's branch (refs/heads/ stripped)"
     (is (= "main" (cmds/main-return-branch {:branch "refs/heads/main"})))
     (is (= "master" (cmds/main-return-branch {:branch "refs/heads/master"})))))
+
+(def remove-wts
+  [{:path "/Users/u/Projects/wtr" :branch "refs/heads/master" :head "aaaaaaa1111"}
+   {:path "/Users/u/Projects/worktrees/wtr/feat-x"
+    :branch "refs/heads/feat-x" :head "8a1b2c3def4"}
+   {:path "/Users/u/Projects/worktrees/wtr/feature/bar"
+    :branch "refs/heads/feature/bar" :head "ccccccc3333"}
+   {:path "/Users/u/Projects/worktrees/wtr/loose"
+    :detached? true :head "ddddddd4444"}])
+
+(deftest resolve-remove-target-main-guard
+  (testing "master and main are reserved main worktree aliases"
+    (is (= {:main? true}
+           (cmds/resolve-remove-target remove-wts "master")))
+    (is (= {:main? true}
+           (cmds/resolve-remove-target remove-wts "main"))))
+  (testing "a suffix match against the main worktree is refused as main"
+    (is (= {:main? true}
+           (cmds/resolve-remove-target remove-wts "wtr")))))
+
+(deftest resolve-remove-target-non-main-worktrees
+  (testing "matching worktree returns path and stripped branch"
+    (is (= {:path "/Users/u/Projects/worktrees/wtr/feat-x"
+            :branch "feat-x"}
+           (cmds/resolve-remove-target remove-wts "feat-x"))))
+  (testing "namespaced name resolves by path suffix"
+    (is (= {:path "/Users/u/Projects/worktrees/wtr/feature/bar"
+            :branch "feature/bar"}
+           (cmds/resolve-remove-target remove-wts "feature/bar"))))
+  (testing "detached worktree has no branch to delete"
+    (is (= {:path "/Users/u/Projects/worktrees/wtr/loose"
+            :branch nil}
+           (cmds/resolve-remove-target remove-wts "loose")))))
+
+(deftest resolve-remove-target-not-found
+  (testing "returns nil when no worktree matches"
+    (is (nil? (cmds/resolve-remove-target remove-wts "nope")))))

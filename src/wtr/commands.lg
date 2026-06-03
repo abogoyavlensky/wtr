@@ -64,6 +64,27 @@
                   (str/replace branch #"^refs/heads/" ""))]
         {:mode :detach :ref ref :label name :sha (:head w)}))))
 
+(defn resolve-remove-target
+  "Map (worktrees `wts`, `name`) to a remove intent, or nil when nothing
+   matches. `master`/`main`, or any name resolving to the main (first) worktree,
+   returns {:main? true}. A non-main worktree returns {:path <abs>
+   :branch <branch|nil>}, with refs/heads/ stripped from attached branches."
+  [wts name]
+  (let [main-path (:path (first wts))]
+    (cond
+      (or (= name "master") (= name "main"))
+      {:main? true}
+
+      :else
+      (when-let [w (some (fn [w] (when (str/ends-with? (:path w) (str "/" name)) w))
+                         wts)]
+        (if (= (:path w) main-path)
+          {:main? true}
+          (let [branch (:branch w)]
+            {:path (:path w)
+             :branch (when-not (str/blank? (or branch ""))
+                       (str/replace branch #"^refs/heads/" ""))}))))))
+
 (defn main-return-branch
   "The branch token to advise the user to `wtr switch` back to, given the main
    worktree record `main-wt` (first of `git/worktrees`). Uses its current branch
