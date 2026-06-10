@@ -1,6 +1,10 @@
 {:paths ["src"]
+ :resource-paths ["resources"]
  :main "main.lg"
  :targets {:bin {:out "bin/wtr"}}
+ :deps {tiny-cli {; :local/root "../tiny-cli"
+                  :git/url "https://github.com/abogoyavlensky/tiny-cli"
+                  :git/tag "v0.1.0-rc1"}}
  :tasks {:fmt {:doc "Format source files"
                :do [{:sh "cljfmt fix"}]}
 
@@ -9,7 +13,8 @@
 
          :check {:doc "Run all checks"
                  :do [{:sh "lgx fmt"}
-                      {:sh "lgx test"}]}}
- :deps {tiny-cli {; :local/root "../tiny-cli"
-                  :git/url "https://github.com/abogoyavlensky/tiny-cli"
-                  :git/tag "v0.1.0-rc1"}}}
+                      {:sh "lgx test"}]}
+         :release {:doc "Release a new version"
+                   :extra-paths ["scripts"]
+                   :do [{:run "scripts/tag.lg"}
+                        {:sh "git push --tags"}]}}}

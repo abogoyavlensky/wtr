@@ -5,9 +5,12 @@
             [wtr.args :as args]
             [wtr.commands :as cmds]))
 
+(defn- version []
+  (io/slurp (io/resource "VERSION")))
+
 (def app
   {:name "wtr"
-   :version "0.1.0"
+   :version (version)
    :doc "Small git worktree helper."
    :opts [{:key :base-dir
            :long "base-dir"
