@@ -9,17 +9,14 @@ project lives under a single base directory.
 ### With [mise](https://mise.jdx.dev)
 
 ```sh
-mise use github:abogoyavlensky/wtr@latest
+mise use -g github:abogoyavlensky/wtr@latest
 ```
 
 Or pin a version in `.mise.toml`:
 
 ```toml
 [tools]
-wtr = "0.1.0"
-
-[tool_alias]
-wtr = "github:abogoyavlensky/wtr"
+"github:abogoyavlensky/wtr" = "latest"
 ```
 
 Then run `mise install`.
