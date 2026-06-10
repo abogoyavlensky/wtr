@@ -1,6 +1,6 @@
 (ns wtr.main
-  (:require [os :as os]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
+            [os :as os]
             [tiny-cli.core :as cli]
             [wtr.args :as args]
             [wtr.commands :as cmds]))
@@ -14,7 +14,7 @@
            :value? true
            :doc "Override base directory for worktrees."}]
    :footer (str "Run 'wtr help COMMAND' for more information on a command."
-              "\nSee https://github.com/abogoyavlensky/wtr for more information.")
+                "\nSee https://github.com/abogoyavlensky/wtr for more information.")
    :commands [{:name "list"
                :doc "List worktrees."
                :run cmds/list}
@@ -63,5 +63,5 @@
 
 ; Top-level forms run during AOT compilation too. Guard so `lg -b` doesn't
 ; execute the CLI while bundling.
-(when-not *compiling-aot* 
+(when-not *compiling-aot*
   (main))

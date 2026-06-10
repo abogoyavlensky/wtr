@@ -1,11 +1,11 @@
 (ns wtr.commands
   (:refer-clojure :exclude [list remove])
-  (:require [tiny-cli.core :as cli]
+  (:require [clojure.string :as str]
             [os :as os]
-            [clojure.string :as str]
-            [wtr.git :as git]
+            [tiny-cli.core :as cli]
+            [wtr.config :as config]
             [wtr.format :as fmt]
-            [wtr.config :as config]))
+            [wtr.git :as git]))
 
 (defn- error-exit
   "Prints \"Error: <msgs...>\" to stderr and exits 1. Callers must not include
@@ -53,7 +53,8 @@
   [wts name]
   (cond
     (or (= name "master") (= name "main"))
-    {:mode :reattach :ref name}
+    {:mode :reattach
+     :ref name}
 
     :else
     (when-let [w (some (fn [w] (when (str/ends-with? (:path w) (str "/" name)) w))
@@ -62,7 +63,10 @@
             ref (if (str/blank? (or branch ""))
                   (:head w)
                   (str/replace branch #"^refs/heads/" ""))]
-        {:mode :detach :ref ref :label name :sha (:head w)}))))
+        {:mode :detach
+         :ref ref
+         :label name
+         :sha (:head w)}))))
 
 (defn resolve-remove-target
   "Map (worktrees `wts`, `name`) to a remove intent, or nil when nothing
@@ -256,7 +260,7 @@
       (if (file-exists? path)
         (println (config/render-config path (slurp path) nil))
         (println (config/render-config
-                  path nil (config/default-base-dir (git/main-worktree-path))))))
+                   path nil (config/default-base-dir (git/main-worktree-path))))))
     (catch e :default
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]

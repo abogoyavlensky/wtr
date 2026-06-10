@@ -1,6 +1,6 @@
 (ns wtr.config
-  (:require [os :as os]
-            [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [os :as os]))
 
 (defn config-path
   "Returns the absolute path to ~/.config/wtr/config.toml.
@@ -32,18 +32,18 @@
    lines are ignored."
   [content]
   (reduce
-   (fn [m line]
-     (let [trimmed (str/trim line)]
-       (if (or (str/blank? trimmed) (str/starts-with? trimmed "#"))
-         m
-         (let [eq (str/index-of line "=")]
-           (if (nil? eq)
-             m
-             (let [k (str/trim (subs line 0 eq))
-                   v (strip-quotes (subs line (inc eq)))]
-               (assoc m (keyword k) v)))))))
-   {}
-   (str/split content #"\n")))
+    (fn [m line]
+      (let [trimmed (str/trim line)]
+        (if (or (str/blank? trimmed) (str/starts-with? trimmed "#"))
+          m
+          (let [eq (str/index-of line "=")]
+            (if (nil? eq)
+              m
+              (let [k (str/trim (subs line 0 eq))
+                    v (strip-quotes (subs line (inc eq)))]
+                (assoc m (keyword k) v)))))))
+    {}
+    (str/split content #"\n")))
 
 (defn read-config
   "Reads the config file at (config-path). Returns {:base-dir \"/path\"} when

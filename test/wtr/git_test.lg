@@ -1,6 +1,6 @@
 (ns wtr.git-test
-  (:require [os :as os]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
+            [os :as os]
             [test :refer [deftest is testing run-tests]]
             [wtr.git :as git]))
 
