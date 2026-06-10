@@ -9,12 +9,23 @@
     (is (string? path))
     (is (str/starts-with? path "/"))))
 
+(defn- clean-stale-fixture-branches!
+  "Deletes leftover wtr-test-fixture-* branches from earlier crashed runs."
+  []
+  (let [out (:out (os/sh "git" "for-each-ref" "refs/heads/wtr-test-fixture-*"
+                         "--format=%(refname:short)"))]
+    (doseq [b (filter #(not (str/blank? %)) (str/split (str/trim out) #"\n"))]
+      (os/sh "git" "branch" "-D" b))))
+
 (deftest branch-exists-detects-existing-branch
-  (testing "an existing local branch is detected (works with detached HEAD)"
-    (let [out (:out (os/sh "git" "for-each-ref" "refs/heads"
-                           "--format=%(refname:short)"))
-          name (first (str/split (str/trim out) #"\n"))]
-      (is (git/branch-exists? name)))))
+  (testing "a fixture branch is detected (no repo state assumed)"
+    (clean-stale-fixture-branches!)
+    (let [name (str "wtr-test-fixture-" (rand-int 1000000))]
+      (is (zero? (:exit (os/sh "git" "branch" name "HEAD"))))
+      (try
+        (is (git/branch-exists? name))
+        (finally
+          (os/sh "git" "branch" "-D" name))))))
 
 (deftest branch-exists-returns-false-for-missing
   (is (= false (git/branch-exists? "wtr-test-nonexistent-xyz-987654"))))
