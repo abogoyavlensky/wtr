@@ -48,6 +48,49 @@
   (testing "returns nil when nothing matches"
     (is (nil? (cmds/resolve-worktree-path sample-wts "nope")))))
 
+(deftest run-command-mode-classifies-commands
+  (testing "no command opens an interactive shell"
+    (is (= :interactive-shell
+           (cmds/run-command-mode "/tmp" []))))
+
+  (testing "an executable command uses direct exec"
+    (is (= :direct
+           (cmds/run-command-mode "/tmp" ["sh" "-c" "true"]))))
+
+  (testing "a command with both builtin and executable forms stays direct"
+    (is (= :direct
+           (cmds/run-command-mode "/tmp" ["pwd"])))
+    (is (= :direct
+           (cmds/run-command-mode "/tmp" ["true"]))))
+
+  (testing "a shell builtin falls back to the user's shell"
+    (is (= :shell-command
+           (cmds/run-command-mode "/tmp" ["cd"]))))
+
+  (testing "an unknown command falls back to the user's shell"
+    (is (= :shell-command
+           (cmds/run-command-mode
+             "/tmp" ["definitely-not-an-executable-for-wtr-test"])))))
+
+(deftest run-exec-argv-builds-command-lines
+  (testing "interactive shell mode starts the user's shell after cd"
+    (is (= ["sh" "-c" "cd \"$1\" || exit 1; shift; exec \"$@\""
+            "sh" "/tmp/wt" "/bin/zsh" "-i"]
+           (cmds/run-exec-argv
+             "/tmp/wt" "/bin/zsh" :interactive-shell []))))
+
+  (testing "direct mode keeps the existing exec wrapper"
+    (is (= ["sh" "-c" "cd \"$1\" || exit 1; shift; exec \"$@\""
+            "sh" "/tmp/wt" "sh" "-c" "pwd"]
+           (cmds/run-exec-argv
+             "/tmp/wt" "/bin/zsh" :direct ["sh" "-c" "pwd"]))))
+
+  (testing "shell command mode uses an interactive shell so functions load"
+    (is (= ["/bin/zsh" "-ic" "cd \"$1\" || exit 1; shift; \"$@\""
+            "wtr-shell" "/tmp/wt" "lmcx" "arg"]
+           (cmds/run-exec-argv
+             "/tmp/wt" "/bin/zsh" :shell-command ["lmcx" "arg"])))))
+
 (def switch-wts
   [{:path "/Users/u/Projects/wtr"
     :branch "refs/heads/master"

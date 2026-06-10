@@ -44,19 +44,21 @@ Error handling stays simple. Worktree lookup errors keep their current behavior.
 - Modify: `src/wtr/commands.lg`
 - Test: `test/wtr/commands_test.lg`
 
-- [ ] **Step 1: Write focused tests**
+- [x] **Step 1: Write focused tests**
   Test that empty commands select interactive shell mode, executable commands select direct mode, and unknown command names select shell-command mode.
 
-- [ ] **Step 2: Run the focused tests**
+- [x] **Step 2: Run the focused tests**
   Run: `lgx test`
-  Expected: FAIL before implementation.
+  Result: FAIL before implementation because `wtr.commands/run-command-mode` was undefined.
 
-- [ ] **Step 3: Implement helper functions**
+- [x] **Step 3: Implement helper functions**
   Add helpers for resolving the user's shell, probing command executability, classifying command mode, and building the `os/exec*` argv vector.
+  Codex review follow-up: shell builtins such as `cd` now fall back to shell mode instead of being treated as direct executables.
+  Codex review follow-up: commands that have both builtin and executable forms, such as `pwd` and `true`, now stay on the direct path.
 
-- [ ] **Step 4: Run verification**
+- [x] **Step 4: Run verification**
   Run: `lgx test`
-  Expected: PASS.
+  Result: PASS, 42 tests and 108 assertions.
 
 ### Task 2: Wire `wtr run`
 
@@ -65,22 +67,33 @@ Error handling stays simple. Worktree lookup errors keep their current behavior.
 - Modify: `README.md`
 - Test: `test/wtr/commands_test.lg`
 
-- [ ] **Step 1: Update the `run` handler**
+- [x] **Step 1: Update the `run` handler**
   Use the helper-built argv vector for direct, shell-command, and interactive-shell modes. Run the mise trust preflight before shell-backed modes only.
 
-- [ ] **Step 2: Update README**
+- [x] **Step 2: Update README**
   Document executable command behavior, shell-function fallback, and the mise trust preflight.
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
   Run: `lgx test`
-  Expected: PASS.
+  Result: PASS, 42 tests and 108 assertions.
 
-- [ ] **Step 4: Build and smoke-test**
+- [x] **Step 4: Build and smoke-test**
   Run: `lgx build`
   Run: `./bin/wtr run new-feat ls`
   Run: `./bin/wtr run new-feat definitely-not-an-executable-for-wtr-smoke`
-  Expected: build succeeds, `ls` runs in the worktree, and the unknown command takes the shell-backed path and exits non-zero.
+  Result: build succeeded, `pwd` and `ls` ran in the worktree through the direct path, the unknown command used the shell-backed path and exited 127, and a temporary bash function ran in the target worktree with arguments preserved.
 
 ## Completion Summary
 
-Pending.
+Implemented. `wtr run` now keeps real executables on the direct `exec` path,
+falls back to the user's interactive shell for non-executable command names
+such as zsh functions, and runs a best-effort `mise trust --yes --all --cd`
+preflight before shell-backed modes. Tests cover direct commands, shell
+builtins, builtin-backed executable utilities, unknown command fallback, and
+the generated argv vectors. Built binary smoke tests passed for direct
+commands, unknown-command fallback, and a temporary bash function.
+
+Second-opinion review found two probe edge cases during implementation:
+pure shell builtins must not use direct exec, and utilities such as `pwd` and
+`true` must stay direct when executable files exist on `PATH`. Both were fixed.
+The final review pass found no actionable issues.
