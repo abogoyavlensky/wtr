@@ -1,3 +1,4 @@
 .clj-lsp
 bin/
 .tmp/
+.nrepl-port
