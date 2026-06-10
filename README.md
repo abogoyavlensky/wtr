@@ -4,6 +4,41 @@ WTR is a small tool to manage multiple git worktrees. It removes the need to
 remember absolute paths and standardises a layout so that every worktree of a
 project lives under a single base directory.
 
+## Installation
+
+### With [mise](https://mise.jdx.dev)
+
+```sh
+mise use github:abogoyavlensky/wtr@latest
+```
+
+Or pin a version in `.mise.toml`:
+
+```toml
+[tools]
+wtr = "0.1.0"
+
+[tool_alias]
+wtr = "github:abogoyavlensky/wtr"
+```
+
+Then run `mise install`.
+
+### Manual
+
+Download the archive for your platform from the
+[releases page](https://github.com/abogoyavlensky/wtr/releases), extract it,
+and put `wtr` on your `PATH`:
+
+```sh
+tar -xzf wtr_<version>_<os>_<arch>.tar.gz
+mv wtr ~/.local/bin/
+```
+
+Releases are created by pushing a `v*` tag; each one ships binaries for
+linux/amd64, linux/arm64, darwin/amd64 and darwin/arm64 with a
+`checksums.txt`.
+
 ## Commands
 
 ### `wtr list`

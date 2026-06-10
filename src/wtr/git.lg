@@ -1,21 +1,24 @@
 (ns wtr.git
-  (:require [os :as os]
-            [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [os :as os]))
 
 (defn- parse-record [lines]
   (reduce
-   (fn [m line]
-     (cond
-       (str/starts-with? line "worktree ") (assoc m :path (subs line 9))
-       (str/starts-with? line "HEAD ") (assoc m :head (subs line 5))
-       (str/starts-with? line "branch ") (assoc m :branch (subs line 7))
-       (= line "detached") (assoc m :detached? true)
-       (= line "bare") (assoc m :bare? true)
-       (str/starts-with? line "locked") (assoc m :locked? true)
-       (str/starts-with? line "prunable") (assoc m :prunable? true)
-       :else m))
-   {:detached? false :bare? false :locked? false :prunable? false}
-   lines))
+    (fn [m line]
+      (cond
+        (str/starts-with? line "worktree ") (assoc m :path (subs line 9))
+        (str/starts-with? line "HEAD ") (assoc m :head (subs line 5))
+        (str/starts-with? line "branch ") (assoc m :branch (subs line 7))
+        (= line "detached") (assoc m :detached? true)
+        (= line "bare") (assoc m :bare? true)
+        (str/starts-with? line "locked") (assoc m :locked? true)
+        (str/starts-with? line "prunable") (assoc m :prunable? true)
+        :else m))
+    {:detached? false
+     :bare? false
+     :locked? false
+     :prunable? false}
+    lines))
 
 (defn worktrees
   "Run `git worktree list --porcelain -z`, return a vector of maps:

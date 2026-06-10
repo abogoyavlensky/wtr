@@ -1,6 +1,6 @@
 (ns wtr.git-test
-  (:require [os :as os]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
+            [os :as os]
             [test :refer [deftest is testing run-tests]]
             [wtr.git :as git]))
 
@@ -9,11 +9,23 @@
     (is (string? path))
     (is (str/starts-with? path "/"))))
 
-(deftest branch-exists-detects-current-branch
-  (testing "current branch (HEAD) is detected"
-    (let [head (:out (os/sh "git" "rev-parse" "--abbrev-ref" "HEAD"))
-          name (str/trim head)]
-      (is (git/branch-exists? name)))))
+(defn- clean-stale-fixture-branches!
+  "Deletes leftover wtr-test-fixture-* branches from earlier crashed runs."
+  []
+  (let [out (:out (os/sh "git" "for-each-ref" "refs/heads/wtr-test-fixture-*"
+                         "--format=%(refname:short)"))]
+    (doseq [b (filter #(not (str/blank? %)) (str/split (str/trim out) #"\n"))]
+      (os/sh "git" "branch" "-D" b))))
+
+(deftest branch-exists-detects-existing-branch
+  (testing "a fixture branch is detected (no repo state assumed)"
+    (clean-stale-fixture-branches!)
+    (let [name (str "wtr-test-fixture-" (rand-int 1000000))]
+      (is (zero? (:exit (os/sh "git" "branch" name "HEAD"))))
+      (try
+        (is (git/branch-exists? name))
+        (finally
+          (os/sh "git" "branch" "-D" name))))))
 
 (deftest branch-exists-returns-false-for-missing
   (is (= false (git/branch-exists? "wtr-test-nonexistent-xyz-987654"))))
