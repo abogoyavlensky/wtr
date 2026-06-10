@@ -36,6 +36,78 @@
     (some (fn [w] (when (str/ends-with? (:path w) (str "/" name)) (:path w)))
           wts)))
 
+(def direct-runner-script
+  "cd \"$1\" || exit 1; shift; exec \"$@\"")
+
+(def shell-command-runner-script
+  "cd \"$1\" || exit 1; shift; \"$@\"")
+
+(defn command-executable?
+  "True when `cmd-name` resolves to an executable path from `dir`.
+   Shell functions and aliases intentionally return false; those need the
+   user's interactive shell. Shell builtins and keywords also return false
+   because the direct runner uses `exec \"$@\"`, which needs a real executable."
+  [dir cmd-name]
+  (try
+    (zero? (:exit (os/sh "sh" "-c"
+                         (str "cd \"$2\" || exit 1; "
+                              "case \"$1\" in "
+                              "*/*) [ -x \"$1\" ] ;; "
+                              "*) IFS=:; "
+                              "for d in $PATH; do "
+                              "[ -n \"$d\" ] || d=.; "
+                              "[ -f \"$d/$1\" ] && [ -x \"$d/$1\" ] && exit 0; "
+                              "done; "
+                              "exit 1 ;; "
+                              "esac")
+                         "sh" cmd-name dir)))
+    (catch e :default false)))
+
+(defn run-command-mode
+  "Classify the trailing command for `wtr run`.
+     []                    -> :interactive-shell
+     executable command    -> :direct
+     shell function/name   -> :shell-command"
+  [dir cmd]
+  (cond
+    (empty? cmd) :interactive-shell
+    (command-executable? dir (first cmd)) :direct
+    :else :shell-command))
+
+(defn run-exec-argv
+  "Build the argv vector passed to `os/exec*` for a resolved run command."
+  [dir shell mode cmd]
+  (case mode
+    :interactive-shell
+    ["sh" "-c" direct-runner-script "sh" dir shell "-i"]
+
+    :direct
+    (vec (concat ["sh" "-c" direct-runner-script "sh" dir] cmd))
+
+    :shell-command
+    (vec (concat [shell "-ic" shell-command-runner-script
+                  "wtr-shell" dir]
+                 cmd))))
+
+(defn shell-backed-run-mode?
+  [mode]
+  (or (= mode :interactive-shell)
+      (= mode :shell-command)))
+
+(defn- user-shell
+  []
+  (let [s (os/getenv "SHELL")]
+    (if (str/blank? s) "/bin/sh" s)))
+
+(defn- trust-mise-worktree!
+  "Best-effort trust preflight for shell-backed modes. Ignore failures so
+   users without mise, or with an older mise, still get the requested shell."
+  [dir]
+  (when (command-executable? dir "mise")
+    (try
+      (os/sh "mise" "trust" "--yes" "--all" "--cd" dir)
+      (catch e :default nil))))
+
 (defn resolve-switch-target
   "Map (worktrees `wts`, `name`) to a switch intent for `wtr switch`, or nil when
    no worktree matches.
@@ -170,12 +242,12 @@
       ;; The child is run by wtr, not by lgx — clear any inherited LGX_RUN so a
       ;; bundled lgx-built tool we exec isn't fooled into dev-runner arg parsing.
       (os/setenv "LGX_RUN" "")
-      (let [shell (let [s (os/getenv "SHELL")] (if (str/blank? s) "/bin/sh" s))
-            cmd-vec (if (empty? cmd) [shell] cmd)
-            code (apply os/exec* "sh" "-c"
-                        "cd \"$1\" || exit 1; shift; exec \"$@\""
-                        "sh" dir cmd-vec)]
-        (os/exit code)))
+      (let [shell (user-shell)
+            mode (run-command-mode dir cmd)
+            argv (run-exec-argv dir shell mode cmd)]
+        (when (shell-backed-run-mode? mode)
+          (trust-mise-worktree! dir))
+        (os/exit (apply os/exec* argv))))
     (catch e :default
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]

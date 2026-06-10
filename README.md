@@ -116,7 +116,8 @@ Runs a command in the named worktree, with stdio streamed and the command's
 exit code propagated. With no command, it opens an interactive shell (`$SHELL`,
 falling back to `/bin/sh`) in the worktree — the binary-native way to "be in"
 a worktree without changing your parent shell. `master` or `main` target the
-main worktree.
+main worktree. If the command name is not an executable on `PATH`, `wtr` runs
+it through your interactive shell, so zsh functions from `~/.zshrc` work.
 
 ```bash
 # Run a one-off command in a worktree
@@ -127,6 +128,9 @@ $ wtr run feature-x git status -s
 
 # A literal `--` inside the command is passed through untouched
 $ wtr run feature-x git checkout -- file.txt
+
+# Run a zsh function defined in ~/.zshrc
+$ wtr run feature-x lmcx
 
 # Open a shell in the worktree; `exit` returns you
 $ wtr run feature-x
@@ -139,6 +143,11 @@ The name is resolved against `git worktree list`, so only existing worktrees
 match (no config needed). Namespaced names work too: `wtr run feature/bar`.
 A worktree literally named `master` or `main` is shadowed by the main-worktree
 alias.
+
+For shell-backed modes (`wtr run feature-x` and shell-function fallback), `wtr`
+tries `mise trust --yes --all --cd <worktree>` first when `mise` is available.
+This prevents a mise trust prompt from blocking shell startup in the child
+process.
 
 Note: an interactive shell needs the built binary (`./bin/wtr run …`). Under
 `lgx run` the dev runner buffers stdio, so a nested shell won't be interactive.
