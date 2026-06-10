@@ -3,7 +3,8 @@
             [os :as os]
             [tiny-cli.core :as cli]
             [wtr.args :as args]
-            [wtr.commands :as cmds]))
+            [wtr.commands :as cmds]
+            [wtr.completion :as completion]))
 
 (defn- version []
   (io/slurp (io/resource "VERSION")))
@@ -52,7 +53,12 @@
                :run cmds/remove}
               {:name "config"
                :doc "Show the config file path and its content."
-               :run cmds/config}]})
+               :run cmds/config}
+              {:name "completion"
+               :doc "Print shell completion script (bash, zsh or fish)."
+               :args [{:key :shell
+                       :doc "Shell name: bash, zsh or fish."}]
+               :run completion/completion}]})
 
 (defn- cli-argv [argv]
   "Application args, robust across dev (`lgx run`) and bundled-binary modes.
@@ -62,7 +68,12 @@
   (args/strip-runner-args argv (not (str/blank? (os/getenv "LGX_RUN")))))
 
 (defn- main []
-  (cli/run! app (cli-argv os/args)))
+  (let [argv (cli-argv os/args)]
+    ;; Hidden completion endpoint for the shell scripts; handled before
+    ;; tiny-cli so it never shows up in help.
+    (if (= "__complete" (first argv))
+      (completion/complete! app (rest argv))
+      (cli/run! app argv))))
 
 ; Top-level forms run during AOT compilation too. Guard so `lg -b` doesn't
 ; execute the CLI while bundling.
