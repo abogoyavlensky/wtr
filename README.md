@@ -28,7 +28,6 @@ Download the archive for your platform from the
 and put `wtr` on your `PATH`:
 
 ```sh
-```sh
 VERSION=0.1.0
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')   # linux | darwin
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
@@ -41,6 +40,34 @@ mv wtr ~/.local/bin/
 Releases are created by pushing a `v*` tag; each one ships binaries for
 linux/amd64, linux/arm64, darwin/amd64 and darwin/arm64 with a
 `checksums.txt`.
+
+### Shell completions
+
+`wtr completion <shell>` prints a completion script for bash, zsh or fish.
+Completions are dynamic: besides subcommands and flags, they suggest the
+worktree names of the current repository for `run`, `switch` and `remove`.
+
+Bash — add to `~/.bashrc`:
+
+```sh
+source <(wtr completion bash)
+```
+
+Zsh — either source it the same way in `~/.zshrc` (after `compinit`), or
+drop it on your `fpath`:
+
+```sh
+mkdir -p ~/.zfunc
+wtr completion zsh > ~/.zfunc/_wtr
+```
+
+and make sure `~/.zshrc` contains `fpath+=~/.zfunc` before `compinit` runs.
+
+Fish:
+
+```sh
+wtr completion fish > ~/.config/fish/completions/wtr.fish
+```
 
 ## Commands
 
@@ -193,6 +220,11 @@ Use `--force` only for throwaway work. It passes `--force` to
 `wtr remove master` and `wtr remove main` are always refused because they target
 the main worktree. Names resolve against `git worktree list`, like `run` and
 `switch`, so namespaced worktrees such as `feature/bar` work.
+
+### `wtr completion <shell>`
+
+Prints the completion script for `bash`, `zsh` or `fish`. See
+[Shell completions](#shell-completions) for how to install it.
 
 ## Configuration
 

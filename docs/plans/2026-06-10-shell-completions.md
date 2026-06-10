@@ -78,7 +78,7 @@ does not matter.
 - Create: `src/wtr/completion.lg`
 - Test: `test/wtr/completion_test.lg`
 
-- [ ] **Step 1: Write focused tests for `candidates`**
+- [x] **Step 1: Write focused tests for `candidates`**
   Cover: subcommand listing (including `help` and `completion`); prefix
   filtering (`sw` → `switch`); global flags when cur-word starts with `-`;
   per-command flags (`remove -` → `--force`); worktree names for
@@ -87,15 +87,15 @@ does not matter.
   match the base prefix; `main`/`master` included; shells after
   `completion`; empty result after `run <name>`.
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx test`
   Expected: new tests fail (namespace not implemented yet).
 
-- [ ] **Step 3: Implement `candidates` and worktree-name derivation**
+- [x] **Step 3: Implement `candidates` and worktree-name derivation**
   Pure functions only; no `os/sh`, no config reads in this namespace's
   logic core.
 
-- [ ] **Step 4: Run verification**
+- [x] **Step 4: Run verification**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx test`
   Expected: all tests pass.
 
@@ -107,19 +107,19 @@ does not matter.
 - Modify: `src/wtr/completion.lg`, `src/wtr/main.lg`
 - Test: `test/wtr/completion_test.lg`
 
-- [ ] **Step 1: Write the three completion scripts as resources**
+- [x] **Step 1: Write the three completion scripts as resources**
   Per the design above; each calls `wtr __complete`.
 
-- [ ] **Step 2: Add the `completion` command handler**
+- [x] **Step 2: Add the `completion` command handler**
   Reads the script via `io/resource`, prints to stdout; unknown shell →
   `Error: …` to stderr, exit 1. Register the command in the `app` map in
   `main.lg` with an arg spec for `shell`.
 
-- [ ] **Step 3: Add a test that `bash` script output is non-empty and
+- [x] **Step 3: Add a test that `bash` script output is non-empty and
   mentions `__complete`**
   Test the resource-loading helper, not the process exit.
 
-- [ ] **Step 4: Run verification**
+- [x] **Step 4: Run verification**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx test`
   Expected: all tests pass.
 
@@ -128,18 +128,18 @@ does not matter.
 **Files:**
 - Modify: `src/wtr/main.lg`, `src/wtr/completion.lg`
 
-- [ ] **Step 1: Intercept `__complete` in `main`**
+- [x] **Step 1: Intercept `__complete` in `main`**
   After `cli-argv` stripping, when the first token is `__complete`, call the
   completion entry point with the remaining tokens and exit 0 — before
   `cli/run!`. Wrap the whole handler in try/catch: on any error, print
   nothing, exit 0. This entry point performs the I/O (`git/worktrees`,
   `config/read-config`) and passes results to the pure `candidates`.
 
-- [ ] **Step 2: Run verification**
+- [x] **Step 2: Run verification**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx test`
   Expected: all tests pass.
 
-- [ ] **Step 3: Manual smoke check**
+- [x] **Step 3: Manual smoke check**
   Build the binary, then in bash: `source <(bin/wtr completion bash)` and
   check `bin/wtr __complete ""` lists subcommands, `bin/wtr __complete sw`
   → `switch`, `bin/wtr __complete remove ""` lists worktrees of this repo,
@@ -150,12 +150,44 @@ does not matter.
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Add a "Shell completions" section under Installation**
+- [x] **Step 1: Add a "Shell completions" section under Installation**
   One snippet per shell: bash `source <(wtr completion bash)` in
   `~/.bashrc`; zsh `wtr completion zsh > ~/.zfunc/_wtr` (plus `fpath`
   note) or `source <(wtr completion zsh)`; fish
   `wtr completion fish > ~/.config/fish/completions/wtr.fish`.
 
-- [ ] **Step 2: Run full checks**
+- [x] **Step 2: Run full checks**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx check`
   Expected: formatting and tests pass.
+
+---
+
+## Status: Completed (2026-06-10)
+
+All four tasks implemented and verified.
+
+**What was built:** `wtr completion <shell>` prints bash/zsh/fish scripts
+bundled as resources; a hidden `wtr __complete` endpoint (intercepted in
+`main.lg` before tiny-cli) returns prefix-filtered candidates: subcommands,
+flags from the app map, worktree names (namespaced names preserved via the
+config base-dir prefix, basename fallback), `main`/`master` aliases, and
+shell names. `__complete` swallows all errors and exits 0 so completion can
+never break a shell.
+
+**Deviations from the plan:**
+- Codex review (Task 1): flags are no longer offered after a positional —
+  tiny-cli rejects options there for non-variadic commands.
+- Codex review (Task 3): the fish script was rewritten to the two-rule
+  pattern — quoted `"$cur"` so the empty boundary word survives, and a
+  `complete -F` fallback rule so file completion still works where wtr
+  offers nothing.
+- The plan's `LGX_LG=...let-go/lg` commands were replaced with the
+  mise-installed `lgx` (the repo-local `lg` is a macOS arm64 binary; this
+  session ran on Linux).
+- Drive-by fix: removed a doubled ```` ```sh ```` fence in README's manual
+  install snippet.
+
+**Verification:** 40 tests / 99 assertions pass; `lgx check` (fmt + tests)
+green; bash flow tested end to end against the built binary. zsh/fish were
+not installed in the dev environment — scripts follow standard patterns
+(kubectl/Cobra style) but deserve a quick interactive TAB test.

@@ -1,0 +1,160 @@
+(ns wtr.completion
+  (:require [clojure.string :as str]
+            [os :as os]
+            [wtr.config :as config]
+            [wtr.git :as git]))
+
+;; Commands whose first positional is an existing worktree name. `create` is
+;; deliberately absent: its positional is a new name.
+(def ^:private worktree-arg-commands #{"run" "switch" "remove"})
+
+(def ^:private shells ["bash" "zsh" "fish"])
+
+(defn- basename [path]
+  (last (filter #(not (str/blank? %)) (str/split path "/"))))
+
+(defn- command-names [app]
+  (mapv :name (:commands app)))
+
+(defn- find-command [app name]
+  (some #(when (= (:name %) name) %) (:commands app)))
+
+(defn- long-flags [opts]
+  (keep (fn [o] (when (:long o) (str "--" (:long o)))) opts))
+
+(defn- value-taking-longs
+  "Set of `--long` spellings (from both global and command opts) that consume
+   the next word as their value."
+  [app command]
+  (set (keep (fn [o] (when (and (:long o) (:value? o)) (str "--" (:long o))))
+             (concat (:opts app) (:opts command)))))
+
+(defn- split-context
+  "Classify the words typed before the cursor. Returns
+   {:command <spec|{:unknown? true}|nil> :positionals [..] :awaiting-value? b}.
+   Option tokens are skipped; a value-taking option also consumes the next
+   word — when it is the final word, the cursor sits on its value
+   (:awaiting-value? true). The first non-option word selects the command."
+  [app words]
+  (loop [ws (seq words)
+         command nil
+         positionals []]
+    (if (empty? ws)
+      {:command command
+       :positionals positionals
+       :awaiting-value? false}
+      (let [w (first ws)
+            more (rest ws)]
+        (cond
+          (contains? (value-taking-longs app command) w)
+          (if (empty? more)
+            {:command command
+             :positionals positionals
+             :awaiting-value? true}
+            (recur (rest more) command positionals))
+
+          (str/starts-with? w "-")
+          (recur more command positionals)
+
+          (nil? command)
+          (recur more
+                 (or (find-command app w)
+                     ;; `help` is a tiny-cli built-in, absent from :commands.
+                     (if (= w "help") {:name "help"} {:unknown? true}))
+                 positionals)
+
+          :else
+          (recur more command (conj positionals w)))))))
+
+(defn candidates
+  "Completion candidates for the wtr command line. `words` are the typed words
+   before the cursor (binary name excluded), `cur` the word being completed
+   (may be \"\"), `worktree-names-fn` a no-arg fn returning existing worktree
+   names — a thunk so completing subcommands never shells out to git. Returns
+   a prefix-filtered vector; empty means \"nothing to offer\" and the shell
+   falls back to its default (file) completion."
+  [app words cur worktree-names-fn]
+  (let [{:keys [command positionals awaiting-value?]} (split-context app words)
+        npos (count positionals)
+        cmd-name (:name command)]
+    (filterv
+      #(str/starts-with? % cur)
+      (cond
+        ;; Cursor is on an option's value (e.g. --base-dir <TAB>).
+        awaiting-value? []
+
+        (:unknown? command) []
+
+        ;; Everything after `run <name>` is the user's own command, and
+        ;; tiny-cli rejects options after positionals on the other commands —
+        ;; so past the first positional there is nothing to offer.
+        (and command (pos? npos)) []
+
+        (str/starts-with? cur "-")
+        (if command
+          (vec (concat (long-flags (:opts app))
+                       (long-flags (:opts command))
+                       ["--help"]))
+          (vec (concat (long-flags (:opts app)) ["--help" "--version"])))
+
+        (nil? command) (conj (command-names app) "help")
+
+        (= cmd-name "help") (command-names app)
+
+        (= cmd-name "completion") shells
+
+        (contains? worktree-arg-commands cmd-name)
+        (vec (concat ["main" "master"] (worktree-names-fn)))
+
+        :else []))))
+
+(defn completion-script
+  "The bundled completion script for `shell`, or nil for an unknown shell."
+  [shell]
+  (when (contains? (set shells) shell)
+    (io/slurp (io/resource (str "completions/wtr." shell)))))
+
+(defn completion
+  "Handler for `wtr completion <shell>`: prints the script to stdout."
+  [{:keys [args]}]
+  (if-let [script (completion-script (:shell args))]
+    (print script)
+    (do
+      (binding [*out* *err*]
+        (println (str "Error: unsupported shell: " (:shell args)
+                      " (expected one of: " (str/join ", " shells) ")")))
+      (os/exit 1))))
+
+(defn worktree-names
+  "Names of the non-main worktrees in a `wtr.git/worktrees` vector: the path
+   with `base-prefix` (\"{base-dir}/{project}/\") stripped when it matches —
+   preserving namespaced names like feature/bar — else the path's basename."
+  [wts base-prefix]
+  (mapv (fn [w]
+          (let [path (:path w)]
+            (if (and base-prefix (str/starts-with? path base-prefix))
+              (subs path (count base-prefix))
+              (basename path))))
+        (rest wts)))
+
+(defn complete!
+  "I/O entry point for the hidden `wtr __complete` call made by the shell
+   scripts. `argv` is the typed words after `__complete`; the last one is the
+   word under the cursor (possibly empty). Prints one candidate per line.
+   Never throws: a broken state (not a git repo, bad config) must not break
+   the user's shell, so it just prints nothing."
+  [app argv]
+  (try
+    (let [words (vec (butlast argv))
+          cur (or (last argv) "")
+          names-fn (fn []
+                     (let [wts (git/worktrees)
+                           base (:base-dir (config/read-config))
+                           prefix (when-not (str/blank? (or base ""))
+                                    (str base "/"
+                                         (basename (:path (first wts)))
+                                         "/"))]
+                       (worktree-names wts prefix)))]
+      (doseq [c (candidates app words cur names-fn)]
+        (println c)))
+    (catch e :default nil)))
