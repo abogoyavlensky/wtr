@@ -9,10 +9,11 @@
     (is (string? path))
     (is (str/starts-with? path "/"))))
 
-(deftest branch-exists-detects-current-branch
-  (testing "current branch (HEAD) is detected"
-    (let [head (:out (os/sh "git" "rev-parse" "--abbrev-ref" "HEAD"))
-          name (str/trim head)]
+(deftest branch-exists-detects-existing-branch
+  (testing "an existing local branch is detected (works with detached HEAD)"
+    (let [out (:out (os/sh "git" "for-each-ref" "refs/heads"
+                           "--format=%(refname:short)"))
+          name (first (str/split (str/trim out) #"\n"))]
       (is (git/branch-exists? name)))))
 
 (deftest branch-exists-returns-false-for-missing
