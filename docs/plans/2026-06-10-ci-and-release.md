@@ -85,20 +85,20 @@ wtr = "github:abogoyavlensky/wtr"
 **Files:**
 - Modify: `lgx.edn`
 
-- [ ] **Step 1: Add `:tasks` map to `lgx.edn`**
+- [x] **Step 1: Add `:tasks` map to `lgx.edn`**
   Follow the shape used in `../tiny-cli/lgx.edn`:
   - `:fmt` — doc "Format source files", runs `cljfmt fix`.
   - `:fmt-check` — doc "Check source file formatting", runs `cljfmt check`.
   - `:check` — doc "Run all checks", runs `lgx fmt` then `lgx test`.
   No multi-runtime test task is needed: wtr is an app, not a library, so plain `lgx test` is the test command.
 
-- [ ] **Step 2: Verify tasks work locally**
+- [x] **Step 2: Verify tasks work locally**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx fmt-check`
   Expected: exit 0 (or formatting diffs; if diffs, run the `fmt` task and re-check).
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx test`
   Expected: all tests PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `git commit -m "Add fmt and check tasks to lgx.edn"`
 
 ## Task 2: Add checks workflow
@@ -106,17 +106,17 @@ wtr = "github:abogoyavlensky/wtr"
 **Files:**
 - Create: `.github/workflows/checks.yml`
 
-- [ ] **Step 1: Write the workflow**
+- [x] **Step 1: Write the workflow**
   Copy the structure of `../tiny-cli/.github/workflows/checks.yml`:
   - `on:` push to `master`, pull_request to `master`, and `workflow_call:`.
   - Single `checks` job on `ubuntu-latest`: `actions/checkout@v6`, `jdx/mise-action@v3`, then `lgx fmt-check` and `lgx test` steps.
   Note the test step runs `lgx test` (not `test-all` — that task doesn't exist in wtr).
 
-- [ ] **Step 2: Validate workflow syntax**
+- [x] **Step 2: Validate workflow syntax**
   Run: `actionlint .github/workflows/checks.yml` if available, otherwise a YAML parse check: `python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/checks.yml'))"`
   Expected: no errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `git commit -m "Add CI checks workflow"`
 
 ## Task 3: Add release workflow
@@ -124,7 +124,7 @@ wtr = "github:abogoyavlensky/wtr"
 **Files:**
 - Create: `.github/workflows/release.yml`
 
-- [ ] **Step 1: Write the workflow**
+- [x] **Step 1: Write the workflow**
   Structure:
   - `on: push: tags: ["v*"]`.
   - `concurrency: group: release-${{ github.ref }}, cancel-in-progress: false`.
@@ -139,18 +139,18 @@ wtr = "github:abogoyavlensky/wtr"
        - `(cd dist && sha256sum *.tar.gz > checksums.txt)` and `ls -la dist/`.
     3. "Publish GitHub Release" step (env `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`, `TAG: ${{ github.ref_name }}`): `gh release create "$TAG" --repo="$GITHUB_REPOSITORY" --title="$TAG" --generate-notes dist/*`.
 
-- [ ] **Step 2: Validate workflow syntax**
+- [x] **Step 2: Validate workflow syntax**
   Run: `actionlint .github/workflows/release.yml` if available, otherwise the YAML parse check as in Task 2.
   Expected: no errors.
 
-- [ ] **Step 3: Dry-run the build loop locally for one target**
+- [x] **Step 3: Dry-run the build loop locally for one target**
   From the repo root, reproduce one loop iteration for `darwin_arm64` (the dev machine's platform) in a temp dir: read the lg version from `.mise.toml`, download and verify the base tarball, then
   `LGX_LG=/Users/andrew/Projects/let-go/lg /Users/andrew/Projects/lgx/bin/lgx build -bundle-base <extracted>/lg`
   and run `./bin/wtr list`.
   Expected: binary builds and `wtr list` prints the worktree table.
   Clean up: restore `bin/wtr` if it was previously committed, remove temp files.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `git commit -m "Add release workflow publishing cross-platform binaries"`
 
 ## Task 4: Document installation in README
@@ -158,7 +158,7 @@ wtr = "github:abogoyavlensky/wtr"
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Add an Installation section**
+- [x] **Step 1: Add an Installation section**
   Near the top (before Commands). Content, following the style of lgx's README install docs:
   - mise one-liner: `mise use github:abogoyavlensky/wtr@latest`.
   - Pinned `.mise.toml` example with `[tools]` + `[tool_alias]` (as in the Design section above).
@@ -166,7 +166,7 @@ wtr = "github:abogoyavlensky/wtr"
   - Note that releases are created by pushing a `v*` tag.
   Use /writing-clearly principles: short sentences, active voice.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
   `git commit -m "Document installation via mise"`
 
 ## Task 5: Validate on GitHub
