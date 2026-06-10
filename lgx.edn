@@ -1,6 +1,15 @@
 {:paths ["src"]
  :main "main.lg"
  :targets {:bin {:out "bin/wtr"}}
+ :tasks {:fmt {:doc "Format source files"
+               :do [{:sh "cljfmt fix"}]}
+
+         :fmt-check {:doc "Check source file formatting"
+                     :do [{:sh "cljfmt check"}]}
+
+         :check {:doc "Run all checks"
+                 :do [{:sh "lgx fmt"}
+                      {:sh "lgx test"}]}}
  :deps {tiny-cli {; :local/root "../tiny-cli"
                   :git/url "https://github.com/abogoyavlensky/tiny-cli"
                   :git/tag "v0.1.0-rc1"}}}
