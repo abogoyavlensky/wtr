@@ -163,7 +163,7 @@
 (defn- first-nonblank-line
   [s fallback]
   (or (some (fn [line]
-              (let [trimmed (str/trim line)]
+              (let [trimmed (str/replace (str/trim line) #"^error: " "")]
                 (when-not (str/blank? trimmed) trimmed)))
             (str/split (or s "") #"\n"))
       fallback))
