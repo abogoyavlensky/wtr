@@ -29,7 +29,10 @@
                :opts [{:key :from
                        :long "from"
                        :value? true
-                       :doc "Create from specific branch or commit."}]
+                       :doc "Create from specific branch or commit."}
+                      {:key :sh
+                       :long "sh"
+                       :doc "Open an interactive shell in the new worktree."}]
                :run cmds/create}
               {:name "run"
                :doc "Run a command (or a shell) in a worktree."

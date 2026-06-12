@@ -216,7 +216,16 @@
       (println "Created worktree at" wt-path)
       (if (str/blank? (or from-ref ""))
         (println "Branch:" name)
-        (println "Branch:" name (str "(from " from-ref ")"))))
+        (println "Branch:" name (str "(from " from-ref ")")))
+
+      (when (:sh opts)
+        ;; Same child-process hygiene as `run`: the shell is run by wtr, not
+        ;; lgx, so clear any inherited LGX_RUN before exec'ing.
+        (os/setenv "LGX_RUN" "")
+        (trust-mise-worktree! wt-path)
+        (os/exit (apply os/exec*
+                        (run-exec-argv wt-path (user-shell)
+                                       :interactive-shell nil)))))
     (catch e :default
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]

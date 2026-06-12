@@ -79,6 +79,12 @@
            (cmds/run-exec-argv
              "/tmp/wt" "/bin/zsh" :interactive-shell []))))
 
+  (testing "interactive shell mode ignores a nil command (create --sh passes nil)"
+    (is (= ["sh" "-c" "cd \"$1\" || exit 1; shift; exec \"$@\""
+            "sh" "/tmp/wt" "/bin/zsh" "-i"]
+           (cmds/run-exec-argv
+             "/tmp/wt" "/bin/zsh" :interactive-shell nil))))
+
   (testing "direct mode keeps the existing exec wrapper"
     (is (= ["sh" "-c" "cd \"$1\" || exit 1; shift; exec \"$@\""
             "sh" "/tmp/wt" "sh" "-c" "pwd"]
