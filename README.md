@@ -41,33 +41,34 @@ Releases are created by pushing a `v*` tag; each one ships binaries for
 linux/amd64, linux/arm64, darwin/amd64 and darwin/arm64 with a
 `checksums.txt`.
 
-### Shell completions
+## Quickstart
 
-`wtr completion <shell>` prints a completion script for bash, zsh or fish.
-Completions are dynamic: besides subcommands and flags, they suggest the
-worktree names of the current repository for `run`, `switch` and `remove`.
+A usual workflow: one task, one worktree, one branch.
 
-Bash — add to `~/.bashrc`:
+```bash
+# Start a task in its own worktree and jump straight into a shell there
+$ wtr create --sh feature-x
+Created worktree at /Users/andrew/Projects/worktrees/wtr/feature-x
+Branch: feature-x
 
-```sh
-source <(wtr completion bash)
+# ...work in the worktree: run an agent, edit, commit. `exit` returns you.
+
+# Meanwhile, from the main worktree: run one-off commands without cd
+$ wtr run feature-x npm test
+
+# See every worktree of the project at a glance
+$ wtr list
+
+# Check out the branch from the main dir, where deps and env already live
+$ wtr switch feature-x
+# ...build, test, poke around, then go back
+$ wtr switch master
+
+# Once the work is merged, clean up the worktree and its branch
+$ wtr remove feature-x
 ```
 
-Zsh — either source it the same way in `~/.zshrc` (after `compinit`), or
-drop it on your `fpath`:
-
-```sh
-mkdir -p ~/.zfunc
-wtr completion zsh > ~/.zfunc/_wtr
-```
-
-and make sure `~/.zshrc` contains `fpath+=~/.zfunc` before `compinit` runs.
-
-Fish:
-
-```sh
-wtr completion fish > ~/.config/fish/completions/wtr.fish
-```
+Each command is described in detail below.
 
 ## Commands
 
@@ -257,6 +258,34 @@ base_dir = "/Users/andrew/Projects/worktrees"
 - `base_dir` must be an absolute path.
 - On the first run, `wtr` writes a config that points at a `worktrees`
   directory sibling to the main worktree.
+
+### Shell completions
+
+`wtr completion <shell>` prints a completion script for bash, zsh or fish.
+Completions are dynamic: besides subcommands and flags, they suggest the
+worktree names of the current repository for `run`, `switch` and `remove`.
+
+Bash — add to `~/.bashrc`:
+
+```sh
+source <(wtr completion bash)
+```
+
+Zsh — either source it the same way in `~/.zshrc` (after `compinit`), or
+drop it on your `fpath`:
+
+```sh
+mkdir -p ~/.zfunc
+wtr completion zsh > ~/.zfunc/_wtr
+```
+
+and make sure `~/.zshrc` contains `fpath+=~/.zfunc` before `compinit` runs.
+
+Fish:
+
+```sh
+wtr completion fish > ~/.config/fish/completions/wtr.fish
+```
 
 ## Build
 
