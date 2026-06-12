@@ -4,7 +4,7 @@
  :targets {:bin {:out "bin/wtr"}}
  :deps {abogoyavlensky/tiny-cli {; :local/root "../tiny-cli"
                                  :git/url "https://github.com/abogoyavlensky/tiny-cli"
-                                 :git/tag "v0.1.0-rc2"}}
+                                 :git/tag "v0.1.0"}}
  :tasks {fmt {:doc "Format source files"
                :do [{:sh "cljfmt fix"}]}
 
