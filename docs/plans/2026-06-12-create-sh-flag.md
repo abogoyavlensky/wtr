@@ -97,33 +97,33 @@ the same caveat `wtr run` documents).
 - Modify: `src/wtr/commands.lg`
 - Test: `test/wtr/commands_test.lg`
 
-- [ ] **Step 1: Write the failing-by-omission test**
+- [x] **Step 1: Write the failing-by-omission test**
   In the existing `run-exec-argv-builds-command-lines` deftest, assert that
   `(cmds/run-exec-argv "/tmp/wt" "/bin/zsh" :interactive-shell nil)` returns
   `["sh" "-c" cmds/direct-runner-script "sh" "/tmp/wt" "/bin/zsh" "-i"]` — the
   same argv as the existing empty-vector case. This locks in the `nil` cmd that
   `create --sh` will pass.
 
-- [ ] **Step 2: Run tests**
+- [x] **Step 2: Run tests**
   Run: `lgx test`
   Expected: PASS (the `case` branch ignores `cmd`; this test pins that
   behavior before `create` starts relying on it).
 
-- [ ] **Step 3: Add the `--sh` option to the create spec**
+- [x] **Step 3: Add the `--sh` option to the create spec**
   In `main.lg`, extend the `create` command's `:opts` with
   `{:key :sh :long "sh" :doc "Open an interactive shell in the new worktree."}`.
 
-- [ ] **Step 4: Open the shell from `create`**
+- [x] **Step 4: Open the shell from `create`**
   In `wtr.commands/create`, destructure `:sh` from `opts`. After the existing
   success `println`s, when `:sh` is truthy: clear `LGX_RUN` via
   `(os/setenv "LGX_RUN" "")`, call `(trust-mise-worktree! wt-path)`, then
   `(os/exit (apply os/exec* (run-exec-argv wt-path (user-shell) :interactive-shell nil)))`.
 
-- [ ] **Step 5: Run checks**
+- [x] **Step 5: Run checks**
   Run: `lgx check`
   Expected: formatting clean, all tests PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git commit -m "Add --sh flag to wtr create"`
 
 ### Task 2: README
@@ -131,7 +131,7 @@ the same caveat `wtr run` documents).
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Document `--sh`**
+- [x] **Step 1: Document `--sh`**
   In the `wtr create <name>` section, add a short example:
 
   ```
@@ -144,18 +144,18 @@ the same caveat `wtr run` documents).
   that — as with `run` — an interactive shell needs the built binary, not the
   `lgx run` dev runner.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
   `git commit -m "Document wtr create --sh"`
 
 ### Task 3: Manual verification with the built binary
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Build**
+- [x] **Step 1: Build**
   Run: `lgx build`
   Expected: `bin/wtr` produced without errors.
 
-- [ ] **Step 2: Smoke-test create + shell**
+- [x] **Step 2: Smoke-test create + shell**
   Run: `echo 'pwd; exit 7' | SHELL=/bin/sh ./bin/wtr create --sh tmp-sh-smoke`
   (pin `SHELL=/bin/sh` so a piped non-interactive shell behaves predictably
   across user shells)
@@ -164,11 +164,29 @@ the same caveat `wtr run` documents).
   prints `7` (shell exit code propagated). A piped stdin shell is
   non-interactive but exercises the same cd + exec path.
 
-- [ ] **Step 3: Smoke-test failure path**
+- [x] **Step 3: Smoke-test failure path**
   Run: `./bin/wtr create --sh tmp-sh-smoke`
   Expected: exit 1 with "Error: Branch 'tmp-sh-smoke' already exists" and no
   shell opened.
 
-- [ ] **Step 4: Clean up**
+- [x] **Step 4: Clean up**
   Run: `./bin/wtr remove tmp-sh-smoke`
   Expected: worktree and branch removed.
+
+---
+
+## Completion Summary
+
+**Status: completed.** `wtr create --sh <name>` creates the worktree and then
+opens an interactive shell in it, reusing `run`'s `:interactive-shell` argv,
+mise trust preflight, and `LGX_RUN` hygiene. Implemented in commits
+"Add --sh flag to wtr create" and "Document wtr create --sh".
+
+All steps went as planned: the `nil`-cmd pinning test passed up front,
+`lgx check` was clean, and the built-binary smoke tests confirmed the shell
+opens in the new worktree with the exit code propagated (`exit 7` → `wtr`
+exits 7) and that a failed create opens no shell. Codex review of the
+implementation commit found nothing; its only finding on the docs commit
+(P3: the `--sh` example reused the already-created `feature-x` name, so
+copying the README block sequentially would fail) was fixed by renaming the
+example to `feature-y` and amending the docs commit.
