@@ -105,10 +105,21 @@ Branch: hotfix (from main)
 $ wtr --base-dir /tmp/scratch create throwaway
 Created worktree at /tmp/scratch/wtr/throwaway
 Branch: throwaway
+
+# Create and jump straight into a shell in the new worktree
+$ wtr create --sh feature-y
+Created worktree at /Users/andrew/Projects/worktrees/wtr/feature-y
+Branch: feature-y
 ```
 
 The branch name is taken from `<name>` as-is — no prefix is added. To use a
 namespaced branch, pass it explicitly: `wtr create feature/bar`.
+
+`--sh` behaves like `wtr run feature-y` immediately after the create: it opens
+an interactive shell (`$SHELL`, falling back to `/bin/sh`) in the new worktree,
+runs the same best-effort mise trust preflight, and `exit` returns you with the
+shell's exit code. As with `run`, an interactive shell needs the built binary —
+under `lgx run` the dev runner buffers stdio.
 
 ### `wtr run <name> [command...]`
 
