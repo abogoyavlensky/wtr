@@ -1,6 +1,5 @@
 (ns wtr.commands-test
-  (:require [os :as os]
-            [test :refer [deftest is testing run-tests]]
+  (:require [clojure.test :refer [deftest is testing]]
             [wtr.commands :as cmds]))
 
 (deftest basename-extracts-last-segment

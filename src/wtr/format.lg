@@ -1,11 +1,6 @@
 (ns wtr.format
   (:require [clojure.string :as str]))
 
-(defn- relativize [path base]
-  (if (str/starts-with? path (str base "/"))
-    (subs path (inc (count base)))
-    path))
-
 (defn- short-sha [sha]
   (if sha (subs sha 0 7) "-------"))
 

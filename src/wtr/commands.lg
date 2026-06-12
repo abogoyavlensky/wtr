@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [list remove])
   (:require [clojure.string :as str]
             [os :as os]
-            [tiny-cli.core :as cli]
             [wtr.config :as config]
             [wtr.format :as fmt]
             [wtr.git :as git]))
@@ -61,7 +60,7 @@
                               "exit 1 ;; "
                               "esac")
                          "sh" cmd-name dir)))
-    (catch e :default false)))
+    (catch Exception _ false)))
 
 (defn run-command-mode
   "Classify the trailing command for `wtr run`.
@@ -106,7 +105,7 @@
   (when (command-executable? dir "mise")
     (try
       (os/sh "mise" "trust" "--yes" "--all" "--cd" dir)
-      (catch e :default nil))))
+      (catch Exception _ nil))))
 
 (defn resolve-switch-target
   "Map (worktrees `wts`, `name`) to a switch intent for `wtr switch`, or nil when
@@ -184,12 +183,12 @@
 
 (defn list
   "List worktrees."
-  [context]
+  [_context]
   (try
     (let [wts (git/worktrees)
           cwd (os/cwd)]
       (println (fmt/render-list wts cwd)))
-    (catch e :default
+    (catch Exception e
       (let [stderr (or (:stderr (ex-data e)) (str e))]
         (binding [*out* *err*]
           (print stderr)))
@@ -226,7 +225,7 @@
         (os/exit (apply os/exec*
                         (run-exec-argv wt-path (user-shell)
                                        :interactive-shell nil)))))
-    (catch e :default
+    (catch Exception e
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]
           (if stderr
@@ -257,7 +256,7 @@
         (when (shell-backed-run-mode? mode)
           (trust-mise-worktree! dir))
         (os/exit (apply os/exec* argv))))
-    (catch e :default
+    (catch Exception e
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]
           (if stderr
@@ -285,7 +284,7 @@
                       "). Run 'wtr switch " (main-return-branch (first wts))
                       "' to return."))
         (println "Switched main worktree to" (:ref target))))
-    (catch e :default
+    (catch Exception e
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]
           (if stderr
@@ -324,7 +323,7 @@
                                                      "could not delete branch")
                                 " Re-run with --force to delete it."))))
               (println (str "Removed worktree " (:path target) ".")))))))
-    (catch e :default
+    (catch Exception e
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]
           (if stderr
@@ -335,14 +334,14 @@
 (defn config
   "Show the config file path and its content (read-only). When the file does
    not exist yet, shows the path and the would-be default base_dir instead."
-  [context]
+  [_context]
   (try
     (let [path (config/config-path)]
       (if (file-exists? path)
         (println (config/render-config path (slurp path) nil))
         (println (config/render-config
                    path nil (config/default-base-dir (git/main-worktree-path))))))
-    (catch e :default
+    (catch Exception e
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]
           (if stderr

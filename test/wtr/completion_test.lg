@@ -1,6 +1,6 @@
 (ns wtr.completion-test
   (:require [clojure.string :as str]
-            [test :refer [deftest is testing run-tests]]
+            [clojure.test :refer [deftest is testing]]
             [wtr.completion :as completion]))
 
 ;; A minimal mirror of the real app map: command names and option specs are

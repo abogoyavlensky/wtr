@@ -1,7 +1,7 @@
 (ns wtr.git-test
   (:require [clojure.string :as str]
+            [clojure.test :refer [deftest is testing]]
             [os :as os]
-            [test :refer [deftest is testing run-tests]]
             [wtr.git :as git]))
 
 (deftest main-worktree-path-returns-absolute-path

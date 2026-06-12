@@ -1,5 +1,6 @@
 (ns wtr.completion
   (:require [clojure.string :as str]
+            [io :as io]
             [os :as os]
             [wtr.config :as config]
             [wtr.git :as git]))
@@ -157,4 +158,4 @@
                        (worktree-names wts prefix)))]
       (doseq [c (candidates app words cur names-fn)]
         (println c)))
-    (catch e :default nil)))
+    (catch Exception _ nil)))

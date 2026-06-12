@@ -1,7 +1,7 @@
 (ns wtr.config-test
   (:require [clojure.string :as str]
+            [clojure.test :refer [deftest is testing]]
             [os :as os]
-            [test :refer [deftest is testing run-tests]]
             [wtr.config :as config]))
 
 (deftest parse-toml-basic
@@ -20,12 +20,12 @@
     (is (= :threw
            (try (config/validate-base-dir! "../worktrees")
                 :ok
-                (catch e :default :threw)))))
+                (catch Exception _ :threw)))))
   (testing "throws on empty"
     (is (= :threw
            (try (config/validate-base-dir! "")
                 :ok
-                (catch e :default :threw))))))
+                (catch Exception _ :threw))))))
 
 (deftest validate-base-dir-accepts-absolute
   (is (= "/abs/path" (config/validate-base-dir! "/abs/path"))))
@@ -82,6 +82,6 @@
       (is (= :threw
              (try (config/ensure-config! "../rel" "/Users/u/Projects/wtr")
                   :ok
-                  (catch e :default :threw))))
+                  (catch Exception _ :threw))))
       (finally
         (os/setenv "HOME" orig-home)))))

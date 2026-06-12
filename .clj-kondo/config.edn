@@ -1,0 +1,3 @@
+;; clj-kondo config for let-go (.lg) sources. let-go is Clojure-like but has
+;; core builtins clj-kondo doesn't know about.
+{:linters {:unresolved-symbol {:exclude [file-exists? mkdir delete-file]}}}

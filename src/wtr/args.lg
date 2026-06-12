@@ -1,5 +1,4 @@
-(ns wtr.args
-  (:require [clojure.string :as str]))
+(ns wtr.args)
 
 (defn strip-runner-args
   "Return the application args from a raw argv.

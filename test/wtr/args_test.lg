@@ -1,5 +1,5 @@
 (ns wtr.args-test
-  (:require [test :refer [deftest is testing run-tests]]
+  (:require [clojure.test :refer [deftest is testing]]
             [wtr.args :as args]))
 
 (deftest strip-runner-args-bundled-mode
