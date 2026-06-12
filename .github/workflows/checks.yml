@@ -15,7 +15,7 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Run fmt
-        run: lgx fmt-check
+        run: lgx fmt check
 
       - name: Run tests
         run: lgx test
