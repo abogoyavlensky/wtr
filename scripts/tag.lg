@@ -4,5 +4,5 @@
 (defn- version []
   (str "v" (io/slurp (io/resource "VERSION"))))
 
-(prn "Creating tag " (version))
+(println (str "Creating tag " (version)))
 (os/sh "git" "tag" (version))
