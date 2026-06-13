@@ -21,6 +21,19 @@ Or pin a version in `.mise.toml`:
 
 Then run `mise install`.
 
+### With [Homebrew](https://brew.sh)
+
+```sh
+brew install abogoyavlensky/tap/wtr
+```
+
+Works on macOS and Linux, Intel and ARM. The command taps the
+repository automatically. Upgrade with:
+
+```sh
+brew upgrade wtr
+```
+
 ### Manual
 
 Download the archive for your platform from the

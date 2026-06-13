@@ -67,7 +67,7 @@ it is set on the wtr repo, or the homebrew job will fail to push.
 **Files:**
 - Create: `scripts/generate-formula.sh`
 
-- [ ] **Step 1: Write the script**
+- [x] **Step 1: Write the script**
   Adapt `../lgx/scripts/generate-formula.sh`. Keep the structure: `set -euo
   pipefail`, an `err` helper, argument check (`VERSION CHECKSUMS_FILE`), and a
   `sha_for <target>` helper that `awk`-extracts the sha for
@@ -88,18 +88,18 @@ it is set on the wtr repo, or the homebrew job will fail to push.
   - `test do assert_match version.to_s, shell_output("#{bin}/wtr --version") end`
   - Make it executable (`chmod +x`).
 
-- [ ] **Step 2: Syntax check**
+- [x] **Step 2: Syntax check**
   Run: `bash -n scripts/generate-formula.sh`
   Expected: no output, exit 0.
 
-- [ ] **Step 3: Generate against a sample checksums file**
+- [x] **Step 3: Generate against a sample checksums file**
   Create a throwaway checksums file with the four `wtr_0.1.0_<target>.tar.gz`
   entries (any 64-hex shas), then run:
   `scripts/generate-formula.sh 0.1.0 /tmp/wtr-checksums.txt`
   Expected: a complete `wtr.rb` on stdout — class `Wtr`, four url/sha256 pairs,
   `bin.install "wtr"`, a `wtr --version` test, and **no caveats block**.
 
-- [ ] **Step 4: Verify the missing-checksum failure path**
+- [x] **Step 4: Verify the missing-checksum failure path**
   Run the generator against a checksums file missing one target.
   Expected: non-zero exit with an explicit "no checksum for ..." error.
 
@@ -108,7 +108,7 @@ it is set on the wtr repo, or the homebrew job will fail to push.
 **Files:**
 - Modify: `.github/workflows/release.yml`
 
-- [ ] **Step 1: Add the `homebrew` job**
+- [x] **Step 1: Add the `homebrew` job**
   After the `release` job, add a `homebrew` job with `needs: [release]`,
   `runs-on: ubuntu-latest`, mirroring `../lgx/.github/workflows/release.yml`'s
   homebrew job but with wtr specifics:
@@ -125,7 +125,7 @@ it is set on the wtr repo, or the homebrew job will fail to push.
     (`git diff --cached --quiet && { echo "formula unchanged"; exit 0; }`);
     `git commit -m "wtr ${version}"`; `git push`.
 
-- [ ] **Step 2: Validate workflow YAML**
+- [x] **Step 2: Validate workflow YAML**
   Run: `python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/release.yml'))"`
   Expected: no output, exit 0 (YAML parses).
 
@@ -134,7 +134,7 @@ it is set on the wtr repo, or the homebrew job will fail to push.
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Add a "With Homebrew" subsection**
+- [x] **Step 1: Add a "With Homebrew" subsection**
   Under `## Installation`, add a `### With [Homebrew](https://brew.sh)`
   subsection before or alongside the mise/manual options:
   - Install: `brew install abogoyavlensky/tap/wtr`
@@ -142,7 +142,7 @@ it is set on the wtr repo, or the homebrew job will fail to push.
     automatically.
   - Upgrade: `brew upgrade wtr`
 
-- [ ] **Step 2: Verify rendering**
+- [x] **Step 2: Verify rendering**
   Run: `grep -n "brew install abogoyavlensky/tap/wtr" README.md`
   Expected: one match in the Installation section.
 
@@ -151,12 +151,43 @@ it is set on the wtr repo, or the homebrew job will fail to push.
 **Files:**
 - Modify: `../homebrew-tap/README.md`
 
-- [ ] **Step 1: Add a `## wtr` section**
+- [x] **Step 1: Add a `## wtr` section**
   Mirror the existing `## lgx` section (Install / Upgrade / "How this tap is
   updated"), pointing at `scripts/generate-formula.sh` in the wtr repo and the
   `wtr` releases. **Omit** the let-go requirement paragraph — wtr is
   self-contained.
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
   Run: `grep -n "brew install abogoyavlensky/tap/wtr" ../homebrew-tap/README.md`
   Expected: one match in the new wtr section.
+
+---
+
+## Completion Summary
+
+**Status:** Done — all four tasks implemented and verified.
+
+**What was implemented:**
+- `scripts/generate-formula.sh` (new, executable) — generates `wtr.rb` from a
+  version + release `checksums.txt`. No caveats / no let-go dependency (wtr is
+  self-contained). Verified: `bash -n` passes, sample generation produces the
+  expected formula, and a missing target checksum fails with a clear error and
+  non-zero exit.
+- `.github/workflows/release.yml` — added a `homebrew` job (`needs: [release]`)
+  that downloads `checksums.txt`, clones the tap, regenerates
+  `tap/Formula/wtr.rb`, and commits/pushes (skipping when unchanged). YAML
+  parses; jobs are `checks`, `release`, `homebrew`.
+- `README.md` — added a "With Homebrew" install subsection.
+- `../homebrew-tap/README.md` — added a `wtr` section mirroring the lgx entry,
+  without the let-go note.
+
+**Review:** A `review-with-codex` second-opinion pass over the uncommitted
+changes (script + workflow job) found no actionable bugs.
+
+**Outstanding (ops, outside this code):** The wtr GitHub repo must have the
+`HOMEBREW_TAP_TOKEN` secret (PAT with push access to `homebrew-tap`, same as
+lgx) or the homebrew job will fail to push. End-to-end push to the tap is first
+exercised by the next real `v*` release.
+
+**Not committed:** Implementation changes are left uncommitted (across the wtr
+and homebrew-tap repos) for review before committing.
