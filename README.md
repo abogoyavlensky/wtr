@@ -1,8 +1,8 @@
-# WTR - Git [w]ork[t]ree [r]outer
+# `wtr` - Git [w]ork[t]ree [r]outer
 
-WTR is a small tool to manage multiple git worktrees. It removes the need to
-remember absolute paths and standardises a layout so that every worktree of a
-project lives under a single base directory.
+`wtr` is a small tool to manage multiple git worktrees. It removes the need to
+remember absolute paths, allows to run a command on a worktree from main repo,
+or qickly check a worktree state in detached mode on main branch.
 
 ## Installation
 
