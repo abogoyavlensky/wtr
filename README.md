@@ -6,6 +6,14 @@ project lives under a single base directory.
 
 ## Installation
 
+### With [Homebrew](https://brew.sh)
+
+Works on macOS and Linux:
+
+```sh
+brew install abogoyavlensky/tap/wtr
+```
+
 ### With [mise](https://mise.jdx.dev)
 
 ```sh
@@ -17,21 +25,6 @@ Or pin a version in `.mise.toml`:
 ```toml
 [tools]
 "github:abogoyavlensky/wtr" = "latest"
-```
-
-Then run `mise install`.
-
-### With [Homebrew](https://brew.sh)
-
-```sh
-brew install abogoyavlensky/tap/wtr
-```
-
-Works on macOS and Linux, Intel and ARM. The command taps the
-repository automatically. Upgrade with:
-
-```sh
-brew upgrade wtr
 ```
 
 ### Manual

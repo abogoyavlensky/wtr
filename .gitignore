@@ -1,4 +1,4 @@
-.clj-lsp
+.clj-pulse
 bin/
 .tmp/
 .nrepl-port
