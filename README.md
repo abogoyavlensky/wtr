@@ -1,8 +1,8 @@
 # `wtr` - Git [w]ork[t]ree [r]outer
 
-`wtr` is a small tool to manage multiple git worktrees. It removes the need to
-remember absolute paths, allows to run a command on a worktree from main repo,
-or qickly check a worktree state in detached mode on main branch.
+`wtr` is a small tool to manage multiple git worktrees. Working from the main
+repo, it frees you from remembering absolute paths, runs a command in any
+worktree, and checks a worktree's state in detached HEAD.
 
 ## Installation
 
@@ -77,6 +77,16 @@ $ wtr remove feature-x
 Each command is described in detail below.
 
 ## Commands
+
+| Command | Description |
+| --- | --- |
+| [`wtr list`](#wtr-list) | List all worktrees of the current repo, marking the current one. |
+| [`wtr create <name>`](#wtr-create-name) | Create a worktree on a new branch; `--sh` jumps into a shell there. |
+| [`wtr run <name> [command...]`](#wtr-run-name-command) | Run a command (or open a shell) in a worktree from the main repo. |
+| [`wtr switch <name>`](#wtr-switch-name) | Point the main worktree at another branch in detached HEAD. |
+| [`wtr config`](#wtr-config) | Print the config file path and its contents. |
+| [`wtr remove <name>`](#wtr-remove-name) | Remove a worktree and delete its branch. |
+| [`wtr completion <shell>`](#wtr-completion-shell) | Print the shell completion script (bash/zsh/fish). |
 
 ### `wtr list`
 
