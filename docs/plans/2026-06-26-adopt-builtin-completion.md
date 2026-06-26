@@ -238,11 +238,11 @@ All commands run in `/Users/andrew/Projects/wtr`.
 
 All commands run in `/Users/andrew/Projects/wtr`.
 
-- [ ] **Step 1: Run the full gate**
+- [x] **Step 1: Run the full gate**
   Run: `lgx check`
   Expected: fmt clean, lint clean, `lgx test` green.
 
-- [ ] **Step 2: Build and smoke-test the binary**
+- [x] **Step 2: Build and smoke-test the binary**
   Run: `lgx build`, then from inside a git repo:
   - `bin/wtr completion bash` prints a script containing `__complete`.
   - `bin/wtr __complete ""` lists `list create run switch remove config
@@ -259,15 +259,51 @@ All commands run in `/Users/andrew/Projects/wtr`.
     with a mock `COMP_WORDS` to confirm the real bash path (binary path as
     `COMP_WORDS[0]`).
 
-- [ ] **Step 3: No commit needed**
-  `lgx fmt` (inside `lgx check`) may reformat; if so, commit any formatting with
-  `git commit -m "style: format"`. Otherwise nothing to commit.
+- [x] **Step 3: No commit needed**
+  `lgx fmt` (inside `lgx check`) did not reformat; nothing to commit for the
+  code. (The plan-finalization commit below carries the checkboxes and summary.)
 
 ## Follow-up (out of scope)
 
 Once tiny-cli is released and tagged, switch wtr's `lgx.edn` dep from
 `:local/root` back to `:git/tag` (the commented lines already in the file).
+The codex review flagged this `:local/root` dep as a P1 — it must be a
+repository-resolvable source before this branch merges. It is left as-is for
+now because tiny-cli is not yet released, so there is no tag or pushed sha to
+pin to.
 
 ## Implementation Summary
 
-_(Filled in after implementation.)_
+**Status: Completed (2026-06-26).** All four tasks implemented and verified.
+
+**What changed.** tiny-cli (`auto-completion` branch, commit `c7b6139`): the
+`candidates` `:help` branch now returns `[]` once help's one positional is
+filled, with a matching test. wtr (this branch, commit `8552a3c`): `main.lg`
+wires `:complete completion/worktree-name-candidates` on the run/switch/remove
+name args, drops the `completion` command and the `__complete` interception, and
+`main` becomes a one-liner; `src/wtr/completion.lg` shrank from ~162 to 34 lines
+(just `basename`, the pure `worktree-names`, and the new
+`worktree-name-candidates` `:complete` fn); the three bundled resource scripts
+were deleted.
+
+**Tests.** Every completion case kept and rewired to drive tiny-cli's engine
+against a wtr-mirror app, re-confirming the built-in through wtr's real shape.
+`lgx check` green: 42 tests / 109 assertions, lint 0 errors / 0 warnings.
+
+**Smoke check.** Built `bin/wtr` and verified through the actual bash completion
+mechanism: `wtr <TAB>` lists commands including the injected hidden
+`completion`; `wtr remove <TAB>` → `main master new-feat` (the repo's real
+worktree); `wtr completion <TAB>` → the shells; `wtr help list <TAB>` → empty
+(the tiny-cli fix); an unknown shell exits 2; and `__complete` outside a git
+repo prints nothing and exits 0.
+
+**Codex review.** One P1: `:local/root` makes the project non-reproducible on a
+fresh checkout. Valid and important, but it is the intended WIP state — tiny-cli
+is not yet released, `:local/root` was set deliberately for local validation,
+and there is no tag/pushed sha to pin to yet. Switching to a resolvable
+`:git/tag` is the pre-merge follow-up above; no change made now.
+
+**Deviation.** Plan Tasks 2 and 3 were committed together (`8552a3c`) instead of
+as two commits — the test rewrite and the source slimming are inseparable, and
+committing either alone would leave `lgx test` referencing deleted vars (a
+broken intermediate commit).
