@@ -1,10 +1,20 @@
 (ns wtr.completion-test
   (:require [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
+            [tiny-cli.completion :as tc]
             [wtr.completion :as completion]))
 
-;; A minimal mirror of the real app map: command names and option specs are
-;; what `candidates` introspects, so :run/:doc/:args are irrelevant here.
+;; Completion behavior (subcommands, flags, worktree names, shells, scripts) is
+;; now provided by tiny-cli's built-in engine. These tests drive that engine
+;; against a wtr-shaped mirror app, re-confirming the built-in works for wtr —
+;; the app-specific bit is the :complete fn on the worktree-name positionals.
+;; wtr keeps only the pure worktree-names derivation, tested at the bottom.
+
+;; The worktree-name :complete fn returns main/master plus the existing
+;; worktree names, exactly as wtr.completion/worktree-name-candidates does at
+;; runtime; here it's a fixture so the engine wiring is what's under test.
+(def wt-names (constantly ["main" "master" "feat-x" "feature/bar"]))
+
 (def app
   {:name "wtr"
    :opts [{:key :base-dir
@@ -12,95 +22,106 @@
            :value? true}]
    :commands [{:name "list"}
               {:name "create"
+               :args [{:key :name}]
                :opts [{:key :from
                        :long "from"
                        :value? true}]}
-              {:name "run"}
-              {:name "switch"}
+              {:name "run"
+               :args [{:key :name
+                       :complete wt-names}]
+               :variadic {:key :cmd}}
+              {:name "switch"
+               :args [{:key :name
+                       :complete wt-names}]}
               {:name "remove"
+               :args [{:key :name
+                       :complete wt-names}]
                :opts [{:key :force
                        :long "force"}]}
-              {:name "config"}
-              {:name "completion"}]})
+              {:name "config"}]})
 
-(def no-worktrees (constantly []))
+;; The hidden `completion` command is injected by tiny-cli, not declared above.
+(def iapp (tc/install-command app))
 
 (deftest candidates-subcommands
-  (testing "empty input lists every command plus help"
-    (is (= ["list" "create" "run" "switch" "remove" "config" "completion"
-            "help"]
-           (completion/candidates app [] "" no-worktrees))))
+  (testing "empty input lists every command plus completion and help"
+    (is (= ["list" "create" "run" "switch" "remove" "config" "completion" "help"]
+           (tc/candidates iapp [] ""))))
 
   (testing "prefix filters command names"
-    (is (= ["switch"] (completion/candidates app [] "sw" no-worktrees))))
+    (is (= ["switch"] (tc/candidates iapp [] "sw"))))
 
   (testing "help completes command names"
     (is (= ["config" "completion"]
-           (completion/candidates app ["help"] "co" no-worktrees))))
+           (tc/candidates iapp ["help"] "co"))))
 
   (testing "help with an argument already given completes nothing"
-    (is (= [] (completion/candidates app ["help" "list"] "" no-worktrees)))))
+    (is (= [] (tc/candidates iapp ["help" "list"] "")))))
 
 (deftest candidates-flags
   (testing "root flags"
     (is (= ["--base-dir" "--help" "--version"]
-           (completion/candidates app [] "-" no-worktrees))))
+           (tc/candidates iapp [] "-"))))
 
   (testing "command flags include globals and the command's own"
     (is (= ["--base-dir" "--force" "--help"]
-           (completion/candidates app ["remove"] "-" no-worktrees))))
+           (tc/candidates iapp ["remove"] "-"))))
 
   (testing "no flags after a positional (tiny-cli rejects options there)"
-    (is (= [] (completion/candidates app ["remove" "feat-x"] "-"
-                                     no-worktrees)))
-    (is (= [] (completion/candidates app ["switch" "feat-x"] "-"
-                                     no-worktrees))))
+    (is (= [] (tc/candidates iapp ["remove" "feat-x"] "-")))
+    (is (= [] (tc/candidates iapp ["switch" "feat-x"] "-"))))
 
   (testing "a flag awaiting its value completes nothing"
-    (is (= [] (completion/candidates app ["--base-dir"] "" no-worktrees)))
-    (is (= [] (completion/candidates app ["create" "--from"] ""
-                                     no-worktrees)))))
+    (is (= [] (tc/candidates iapp ["--base-dir"] "")))
+    (is (= [] (tc/candidates iapp ["create" "--from"] "")))))
 
 (deftest candidates-worktree-names
-  (let [names (constantly ["feat-x" "feature/bar"])]
-    (testing "run/switch/remove complete aliases plus worktree names"
-      (is (= ["main" "master" "feat-x" "feature/bar"]
-             (completion/candidates app ["switch"] "" names)))
-      (is (= ["feat-x" "feature/bar"]
-             (completion/candidates app ["remove"] "feat" names)))
-      (is (= ["feature/bar"]
-             (completion/candidates app ["run"] "feature" names))))
+  (testing "run/switch/remove complete aliases plus worktree names"
+    (is (= ["main" "master" "feat-x" "feature/bar"]
+           (tc/candidates iapp ["switch"] "")))
+    (is (= ["feat-x" "feature/bar"]
+           (tc/candidates iapp ["remove"] "feat")))
+    (is (= ["feature/bar"]
+           (tc/candidates iapp ["run"] "feature"))))
 
-    (testing "a flag does not consume the name slot"
-      (is (= ["main" "master" "feat-x" "feature/bar"]
-             (completion/candidates app ["remove" "--force"] "" names))))
+  (testing "a flag does not consume the name slot"
+    (is (= ["main" "master" "feat-x" "feature/bar"]
+           (tc/candidates iapp ["remove" "--force"] ""))))
 
-    (testing "global flag with value before the command still resolves it"
-      (is (= ["switch"]
-             (completion/candidates app ["--base-dir" "/x"] "sw" names))))
+  (testing "global flag with value before the command still resolves it"
+    (is (= ["switch"]
+           (tc/candidates iapp ["--base-dir" "/x"] "sw"))))
 
-    (testing "after the worktree name, run completes nothing (user command)"
-      (is (= [] (completion/candidates app ["run" "feat-x"] "" names)))
-      (is (= [] (completion/candidates app ["run" "feat-x" "git"] "chec"
-                                       names))))
+  (testing "after the worktree name, run completes nothing (user command)"
+    (is (= [] (tc/candidates iapp ["run" "feat-x"] "")))
+    (is (= [] (tc/candidates iapp ["run" "feat-x" "git"] "chec"))))
 
-    (testing "second positional of switch/remove completes nothing"
-      (is (= [] (completion/candidates app ["switch" "feat-x"] "" names))))))
+  (testing "second positional of switch/remove completes nothing"
+    (is (= [] (tc/candidates iapp ["switch" "feat-x"] "")))))
 
 (deftest candidates-misc
   (testing "completion command completes shell names"
     (is (= ["bash" "zsh" "fish"]
-           (completion/candidates app ["completion"] "" no-worktrees)))
+           (tc/candidates iapp ["completion"] "")))
     (is (= ["zsh"]
-           (completion/candidates app ["completion"] "z" no-worktrees)))
-    (is (= [] (completion/candidates app ["completion" "bash"] ""
-                                     no-worktrees))))
+           (tc/candidates iapp ["completion"] "z")))
+    (is (= [] (tc/candidates iapp ["completion" "bash"] ""))))
 
   (testing "create's positional is a new name: nothing to complete"
-    (is (= [] (completion/candidates app ["create"] "" no-worktrees))))
+    (is (= [] (tc/candidates iapp ["create"] ""))))
 
   (testing "unknown command completes nothing"
-    (is (= [] (completion/candidates app ["bogus"] "" no-worktrees)))))
+    (is (= [] (tc/candidates iapp ["bogus"] "")))))
+
+(deftest completion-scripts
+  (testing "tiny-cli generates a wtr script calling __complete for every shell"
+    (doseq [shell ["bash" "zsh" "fish"]]
+      (let [script (tc/script {:name "wtr"} shell)]
+        (is (not (str/blank? script)))
+        (is (str/includes? script "__complete")))))
+
+  (testing "unknown shell yields nil"
+    (is (nil? (tc/script {:name "wtr"} "powershell")))))
 
 (def wts
   [{:path "/Users/u/Projects/wtr"
@@ -111,16 +132,6 @@
     :branch "refs/heads/feature/bar"}
    {:path "/elsewhere/odd-one"
     :branch "refs/heads/odd"}])
-
-(deftest completion-scripts
-  (testing "every supported shell has a bundled script calling __complete"
-    (doseq [shell ["bash" "zsh" "fish"]]
-      (let [script (completion/completion-script shell)]
-        (is (not (str/blank? script)))
-        (is (str/includes? script "__complete")))))
-
-  (testing "unknown shell yields nil"
-    (is (nil? (completion/completion-script "powershell")))))
 
 (deftest worktree-names-derivation
   (testing "strips base prefix, keeping namespaced names intact"

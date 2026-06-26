@@ -37,32 +37,29 @@
               {:name "run"
                :doc "Run a command (or a shell) in a worktree."
                :args [{:key :name
-                       :doc "Worktree name, or master/main for the main worktree."}]
+                       :doc "Worktree name, or master/main for the main worktree."
+                       :complete completion/worktree-name-candidates}]
                :variadic {:key :cmd
                           :doc "Command to run; omit to open a shell."}
                :run cmds/run}
               {:name "switch"
                :doc "Switch the main worktree to a worktree's branch (detached)."
                :args [{:key :name
-                       :doc "Worktree name, or master/main to re-attach the main worktree."}]
+                       :doc "Worktree name, or master/main to re-attach the main worktree."
+                       :complete completion/worktree-name-candidates}]
                :run cmds/switch}
               {:name "remove"
                :doc "Remove a worktree and clean up its branch."
                :args [{:key :name
-                       :doc "Worktree name to remove."}]
+                       :doc "Worktree name to remove."
+                       :complete completion/worktree-name-candidates}]
                :opts [{:key :force
                        :long "force"
                        :doc "Force removal of a dirty worktree and force-delete the branch."}]
                :run cmds/remove}
               {:name "config"
                :doc "Show the config file path and its content."
-               :run cmds/config}
-              {:name "completion"
-               :doc "Print shell completion script (bash, zsh or fish)."
-               :hidden? true
-               :args [{:key :shell
-                       :doc "Shell name: bash, zsh or fish."}]
-               :run completion/completion}]})
+               :run cmds/config}]})
 
 (defn- cli-argv [argv]
   "Application args, robust across dev (`lgx run`) and bundled-binary modes.
@@ -72,12 +69,9 @@
   (args/strip-runner-args argv (not (str/blank? (os/getenv "LGX_RUN")))))
 
 (defn- main []
-  (let [argv (cli-argv os/args)]
-    ;; Hidden completion endpoint for the shell scripts; handled before
-    ;; tiny-cli so it never shows up in help.
-    (if (= "__complete" (first argv))
-      (completion/complete! app (rest argv))
-      (cli/run! app argv))))
+  ;; tiny-cli provides the `completion` command and intercepts `__complete`
+  ;; for the shell scripts; wtr only supplies worktree names via :complete.
+  (cli/run! app (cli-argv os/args)))
 
 ; Top-level forms run during AOT compilation too. Guard so `lg -b` doesn't
 ; execute the CLI while bundling.

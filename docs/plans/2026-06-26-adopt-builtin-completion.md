@@ -154,25 +154,25 @@ All commands run in `/Users/andrew/Projects/worktrees/tiny-cli/auto-completion`.
 - Modify: `src/tiny_cli/completion.cljc`
 - Test: `test/tiny_cli/completion_test.cljc`
 
-- [ ] **Step 1: Add the failing test**
+- [x] **Step 1: Add the failing test**
   In the `candidates-commands` deftest, add a case:
   `(is (= [] (completion/candidates app ["help" "list"] "")))` with a
   `testing` label like "help offers nothing once its command arg is filled".
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
   Run: `lgx test`
   Expected: FAIL — current `:help` branch returns command names, not `[]`.
 
-- [ ] **Step 3: Fix the `:help` branch**
+- [x] **Step 3: Fix the `:help` branch**
   In `candidates`, change the `(= :help command)` branch to return the
   command-name candidates only when `(empty? positionals)`, else `[]` (see
   Design).
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
   Run: `lgx test` then `lgx test-all`
   Expected: PASS on let-go, Clojure, and Babashka.
 
-- [ ] **Step 5: Commit (tiny-cli repo)**
+- [x] **Step 5: Commit (tiny-cli repo)**
   `git commit -m "fix: stop completing help's second positional"`
 
 ### Task 2: Slim wtr.completion and rewire main.lg (wtr repo)
@@ -184,29 +184,29 @@ All commands run in `/Users/andrew/Projects/wtr`.
 - Modify: `main.lg`
 - Delete: `resources/completions/wtr.bash`, `wtr.zsh`, `wtr.fish`
 
-- [ ] **Step 1: Slim `src/wtr/completion.lg`**
+- [x] **Step 1: Slim `src/wtr/completion.lg`**
   Reduce the namespace to `basename`, the pure `worktree-names` (verbatim), and
   the new `worktree-name-candidates` (see Design). Drop the `io`/`os` requires
   and everything tiny-cli now provides. Keep `clojure.string`, `wtr.config`,
   `wtr.git`.
 
-- [ ] **Step 2: Rewire `main.lg`**
+- [x] **Step 2: Rewire `main.lg`**
   Add `:complete completion/worktree-name-candidates` to the `:name` arg of
   `run`, `switch`, and `remove`. Remove the `completion` command from
   `:commands`. Simplify `main` to `(cli/run! app (cli-argv os/args))`, deleting
   the `__complete` branch and its comment. Keep the `wtr.completion` require.
 
-- [ ] **Step 3: Delete the bundled scripts**
+- [x] **Step 3: Delete the bundled scripts**
   Run: `git rm resources/completions/wtr.bash resources/completions/wtr.zsh resources/completions/wtr.fish`
 
-- [ ] **Step 4: Verify compilation and the kept derivation tests**
+- [x] **Step 4: Verify compilation and the kept derivation tests**
   Run: `lgx test`
   Expected: the suite loads (no missing-var errors from the slimmed namespace);
   `worktree-names-derivation` passes. The rewired candidate tests come in
   Task 3 — if they reference removed vars at this point, proceed to Task 3
   before judging the full suite.
 
-- [ ] **Step 5: Commit (wtr repo)**
+- [x] **Step 5: Commit (wtr repo)**
   `git commit -m "refactor: adopt tiny-cli built-in completion"`
 
 ### Task 3: Rewire the completion tests, keeping every case (wtr repo)
@@ -216,7 +216,7 @@ All commands run in `/Users/andrew/Projects/wtr`.
 **Files:**
 - Modify: `test/wtr/completion_test.lg`
 
-- [ ] **Step 1: Rewrite the test to drive tiny-cli**
+- [x] **Step 1: Rewrite the test to drive tiny-cli**
   Per the Design "Tests" section: require `[tiny-cli.completion :as tc]`; give
   the mirror `app` `:complete` fns on run/switch/remove `:name` and drop its
   `completion` command; derive `(def iapp (tc/install-command app))`; replace
@@ -227,11 +227,11 @@ All commands run in `/Users/andrew/Projects/wtr`.
   `worktree-names-derivation` on `wtr.completion/worktree-names`. Keep every
   existing case.
 
-- [ ] **Step 2: Run the full wtr suite**
+- [x] **Step 2: Run the full wtr suite**
   Run: `lgx test`
   Expected: PASS — all kept completion cases plus the rest of wtr's tests.
 
-- [ ] **Step 3: Commit (wtr repo)**
+- [x] **Step 3: Commit (wtr repo)**
   `git commit -m "test: re-confirm tiny-cli completion through wtr"`
 
 ### Task 4: Full checks and binary smoke test (wtr repo)
