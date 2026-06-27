@@ -1,5 +1,6 @@
 (ns wtr.commands-test
   (:require [clojure.test :refer [deftest is testing]]
+            [os :as os]
             [wtr.commands :as cmds]))
 
 (deftest basename-extracts-last-segment
@@ -70,6 +71,33 @@
     (is (= :shell-command
            (cmds/run-command-mode
              "/tmp" ["definitely-not-an-executable-for-wtr-test"])))))
+
+(defn- tempdir []
+  (str (os/temp-dir) "/wtr-commands-test-" (rand-int 1000000)))
+
+(deftest run-command-mode-routes-builtin-stubs-past-path
+  ;; macOS ships /usr/bin stub executables for shell builtins (builtin(1)), so
+  ;; the PATH probe finds e.g. cd and would wrongly pick :direct. Reproduce that
+  ;; on any platform by planting executables on PATH: the builtin-stub guard
+  ;; must still send cd to the shell, while a real program stays direct.
+  (let [tmp (tempdir)
+        orig-path (os/getenv "PATH")]
+    (mkdir tmp)
+    (os/sh "sh" "-c"
+           (str "for n in cd wtr-fake-prog; do "
+                "printf '#!/bin/sh\\nexit 0\\n' > \"$1/$n\"; "
+                "chmod +x \"$1/$n\"; done")
+           "sh" tmp)
+    (os/setenv "PATH" (str tmp ":" orig-path))
+    (try
+      (testing "a builtin stub stays a shell command even with a PATH executable"
+        (is (= :shell-command
+               (cmds/run-command-mode "/tmp" ["cd"]))))
+      (testing "a non-builtin executable on PATH still goes direct"
+        (is (= :direct
+               (cmds/run-command-mode "/tmp" ["wtr-fake-prog"]))))
+      (finally
+        (os/setenv "PATH" orig-path)))))
 
 (deftest run-exec-argv-builds-command-lines
   (testing "interactive shell mode starts the user's shell after cd"

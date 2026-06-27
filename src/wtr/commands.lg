@@ -62,14 +62,25 @@
                          "sh" cmd-name dir)))
     (catch Exception _ false)))
 
+(def shell-builtin-stubs
+  "Shell builtins that macOS also ships as standalone `/usr/bin` stub
+   executables (see builtin(1)). They must run inside the user's shell so the
+   builtin — not the inert stub — handles them; `exec`ing `/usr/bin/cd`, for
+   instance, only changes a short-lived child's directory and affects nothing.
+   Linux has no such stubs, so the PATH probe in `command-executable?` already
+   routes these to the shell; this set keeps the behaviour consistent on macOS."
+  #{"alias" "bg" "cd" "command" "fc" "fg" "getopts" "hash" "jobs"
+    "read" "type" "ulimit" "umask" "unalias" "wait"})
+
 (defn run-command-mode
   "Classify the trailing command for `wtr run`.
      []                    -> :interactive-shell
      executable command    -> :direct
-     shell function/name   -> :shell-command"
+     builtin/function/name -> :shell-command"
   [dir cmd]
   (cond
     (empty? cmd) :interactive-shell
+    (shell-builtin-stubs (first cmd)) :shell-command
     (command-executable? dir (first cmd)) :direct
     :else :shell-command))
 
