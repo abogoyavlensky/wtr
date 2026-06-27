@@ -40,6 +40,7 @@ cat <<EOF
 class Wtr < Formula
   desc "Git worktree router for managing multiple worktrees"
   homepage "https://github.com/abogoyavlensky/wtr"
+  version "${version}"
   license "MIT"
 
   livecheck do
