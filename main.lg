@@ -1,8 +1,6 @@
 (ns wtr.main
-  (:require [clojure.string :as str]
-            [os :as os]
+  (:require [io :as io]
             [tiny-cli.core :as cli]
-            [wtr.args :as args]
             [wtr.commands :as cmds]
             [wtr.completion :as completion]))
 
@@ -61,17 +59,8 @@
                :doc "Show the config file path and its content."
                :run cmds/config}]})
 
-(defn- cli-argv [argv]
-  "Application args, robust across dev (`lgx run`) and bundled-binary modes.
-   Detects dev mode via LGX_RUN (set by `lgx run`) rather than sniffing for a
-   `--`, which can collide with a `--` inside a user command (e.g. `run wt
-   git checkout -- file`)."
-  (args/strip-runner-args argv (not (str/blank? (os/getenv "LGX_RUN")))))
-
 (defn- main []
-  ;; tiny-cli provides the `completion` command and intercepts `__complete`
-  ;; for the shell scripts; wtr only supplies worktree names via :complete.
-  (cli/run! app (cli-argv os/args)))
+  (cli/run! app *command-line-args*))
 
 ; Top-level forms run during AOT compilation too. Guard so `lg -b` doesn't
 ; execute the CLI while bundling.
