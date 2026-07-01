@@ -56,3 +56,10 @@
   [_ctx]
   (let [wts (git/worktrees)]
     (into [(default-branch-token (first wts))] (names-with-prefix wts))))
+
+(defn removable-worktree-name-candidates
+  "Completion candidates for `remove`'s worktree-name positional: only the
+   non-main worktree names. `main`/`master` are deliberately omitted — the main
+   worktree is protected from removal, so offering them would be misleading."
+  [_ctx]
+  (names-with-prefix (git/worktrees)))
