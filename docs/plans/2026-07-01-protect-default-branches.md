@@ -1,5 +1,7 @@
 # Protect Default Branches from Removal Implementation Plan
 
+> **Status: ✅ Completed (2026-07-01).** See the Implementation Summary at the end.
+
 > **For agentic workers:** Use executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Protect the `main`/`master` default branch from `wtr remove` — hide it from `remove` completion — and fix the completion bug where both `main` and `master` are suggested even when the repo only has one.
@@ -115,17 +117,17 @@ using `constantly` fixtures for the `:complete` fns, plus pure unit tests for
 - Modify: `src/wtr/completion.lg`
 - Test: `test/wtr/completion_test.lg`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   In `completion_test.lg`, add a `default-branch-token-derivation` deftest:
   - `{:branch "refs/heads/master"}` → `"master"`
   - `{:branch "refs/heads/main"}` → `"main"`
   These are the pure, repo-free cases (attached main worktree).
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — `wtr.completion/default-branch-token` is unresolved.
 
-- [ ] **Step 3: Implement `default-branch-token` and rewrite `worktree-name-candidates`**
+- [x] **Step 3: Implement `default-branch-token` and rewrite `worktree-name-candidates`**
   In `completion.lg`:
   - Add `default-branch-token` taking the main worktree record: strip
     `refs/heads/` from `:branch`; if the result is `"main"`/`"master"` return
@@ -136,12 +138,12 @@ using `constantly` fixtures for the `:complete` fns, plus pure unit tests for
   - Rewrite `worktree-name-candidates` as
     `(into [(default-branch-token (first wts))] (names-with-prefix wts))`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS for the new deftest. (Engine tests asserting `["main" "master" …]`
   still use the `constantly` fixture, so they are unaffected until Task 3.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -am "Show only the real default branch in run/switch completion"`
 
 ### Task 2: Remove completion hides main/master
@@ -150,22 +152,22 @@ using `constantly` fixtures for the `:complete` fns, plus pure unit tests for
 - Modify: `src/wtr/completion.lg`
 - Modify: `main.lg`
 
-- [ ] **Step 1: Add `removable-worktree-name-candidates`**
+- [x] **Step 1: Add `removable-worktree-name-candidates`**
   In `completion.lg`, add `removable-worktree-name-candidates` returning
   `(names-with-prefix (git/worktrees))` — non-main names only, no default token.
   Docstring: main/master are protected and never offered for `remove`.
 
-- [ ] **Step 2: Wire it into `main.lg`**
+- [x] **Step 2: Wire it into `main.lg`**
   In the `remove` command's `:args`, change the name arg's `:complete` from
   `completion/worktree-name-candidates` to
   `completion/removable-worktree-name-candidates`. Leave `run`/`switch` on
   `worktree-name-candidates`.
 
-- [ ] **Step 3: Verify build and checks**
+- [x] **Step 3: Verify build and checks**
   Run: `lgx check`
   Expected: PASS (fmt, lint, test all green).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `git commit -am "Hide main/master from wtr remove completion"`
 
 ### Task 3: Update engine-wiring tests for the split fixtures
@@ -173,7 +175,7 @@ using `constantly` fixtures for the `:complete` fns, plus pure unit tests for
 **Files:**
 - Modify: `test/wtr/completion_test.lg`
 
-- [ ] **Step 1: Split the fixture**
+- [x] **Step 1: Split the fixture**
   Replace the single `wt-names` fixture with two:
   - `run-switch-names` → `(constantly ["master" "feat-x" "feature/bar"])`
     (one default token + names, matching the new `worktree-name-candidates`);
@@ -181,7 +183,7 @@ using `constantly` fixtures for the `:complete` fns, plus pure unit tests for
   Update the mirror `app`: `run`/`switch` use `run-switch-names`, `remove` uses
   `remove-names`. Update the fixture comment to describe both fns.
 
-- [ ] **Step 2: Update affected expectations**
+- [x] **Step 2: Update affected expectations**
   In `candidates-worktree-names`:
   - `switch ""` → `["master" "feat-x" "feature/bar"]`.
   - `remove --force ""` ("a flag does not consume the name slot") →
@@ -189,11 +191,11 @@ using `constantly` fixtures for the `:complete` fns, plus pure unit tests for
   Leave prefix-filtered assertions (`remove "feat"`, `run "feature"`) and the
   "completes nothing" cases unchanged — they already exclude main/master.
 
-- [ ] **Step 3: Run the full suite**
+- [x] **Step 3: Run the full suite**
   Run: `lgx test`
   Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `git commit -am "Split completion test fixtures for run/switch vs remove"`
 
 ### Task 4: Document the completion behavior
@@ -201,14 +203,50 @@ using `constantly` fixtures for the `:complete` fns, plus pure unit tests for
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Add a note to the remove section**
+- [x] **Step 1: Add a note to the remove section**
   After the existing "`wtr remove master` and `wtr remove main` are always
   refused …" paragraph, add one sentence: `main`/`master` are also excluded from
   `wtr remove` shell completion. Use /writing-clearly.
 
-- [ ] **Step 2: Verify checks still pass**
+- [x] **Step 2: Verify checks still pass**
   Run: `lgx check`
   Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `git commit -am "Document main/master exclusion from remove completion"`
+
+---
+
+## Implementation Summary
+
+All four tasks landed, plus one review-driven fix. Delivered across five commits
+on `master` (`524cc67`, `147d4fa`, `0effa70`, `7652925`, `2bb68d5`), following
+the plan doc commit `66309e7`.
+
+**What shipped:**
+
+- **`completion/default-branch-token`** — derives the single canonical
+  completion token for the main worktree (`main`/`master`), so run/switch
+  completion now suggests the repo's *actual* default branch instead of always
+  offering both. Fixes the reported bug.
+- **`completion/removable-worktree-name-candidates`** — remove completion now
+  offers only non-main worktree names; `main`/`master` are excluded.
+- **`main.lg`** — `remove`'s `:complete` rewired to the new fn; run/switch keep
+  `worktree-name-candidates`.
+- Private **`names-with-prefix`** extracted to share the config/base-prefix
+  derivation between both candidate fns.
+- **README** remove section notes the completion exclusion.
+
+**Rejection was already implemented** — `resolve-remove-target` +
+`commands/remove` already refuse `wtr remove main`/`master`; no code change
+needed, as the design anticipated.
+
+**Codex second-opinion review (P2, fixed):** a secondary worktree literally
+named `main`/`master` (shadowed by the reserved alias, hence un-removable) could
+still leak into remove completion. Added the pure, tested helper
+**`completion/removable-names`** to drop exact `main`/`master` (keeping
+namespaced names like `feature/main`), wired into
+`removable-worktree-name-candidates`.
+
+**Verification:** `lgx check` green throughout — final run **42 tests, 110
+assertions, 0 failures**, lint 0 errors/0 warnings, fmt clean. No blockers.
