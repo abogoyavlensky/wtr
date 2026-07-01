@@ -144,3 +144,8 @@
 
   (testing "main worktree is never listed"
     (is (= [] (completion/worktree-names [(first wts)] nil)))))
+
+(deftest default-branch-token-derivation
+  (testing "attached main worktree yields its own branch token"
+    (is (= "master" (completion/default-branch-token {:branch "refs/heads/master"})))
+    (is (= "main" (completion/default-branch-token {:branch "refs/heads/main"})))))
