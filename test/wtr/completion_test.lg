@@ -10,10 +10,14 @@
 ;; the app-specific bit is the :complete fn on the worktree-name positionals.
 ;; wtr keeps only the pure worktree-names derivation, tested at the bottom.
 
-;; The worktree-name :complete fn returns main/master plus the existing
-;; worktree names, exactly as wtr.completion/worktree-name-candidates does at
-;; runtime; here it's a fixture so the engine wiring is what's under test.
-(def wt-names (constantly ["main" "master" "feat-x" "feature/bar"]))
+;; The worktree-name :complete fns are fixtures here so the engine wiring is
+;; what's under test. `run-switch-names` mirrors
+;; wtr.completion/worktree-name-candidates: one default-branch token (the repo's
+;; actual default, here master) plus the non-main worktree names.
+;; `remove-names` mirrors wtr.completion/removable-worktree-name-candidates:
+;; names only, since main/master are protected from removal.
+(def run-switch-names (constantly ["master" "feat-x" "feature/bar"]))
+(def remove-names (constantly ["feat-x" "feature/bar"]))
 
 (def app
   {:name "wtr"
@@ -28,14 +32,14 @@
                        :value? true}]}
               {:name "run"
                :args [{:key :name
-                       :complete wt-names}]
+                       :complete run-switch-names}]
                :variadic {:key :cmd}}
               {:name "switch"
                :args [{:key :name
-                       :complete wt-names}]}
+                       :complete run-switch-names}]}
               {:name "remove"
                :args [{:key :name
-                       :complete wt-names}]
+                       :complete remove-names}]
                :opts [{:key :force
                        :long "force"}]}
               {:name "config"}]})
@@ -76,16 +80,20 @@
     (is (= [] (tc/candidates iapp ["create" "--from"] "")))))
 
 (deftest candidates-worktree-names
-  (testing "run/switch/remove complete aliases plus worktree names"
-    (is (= ["main" "master" "feat-x" "feature/bar"]
+  (testing "run/switch complete the default-branch token plus worktree names"
+    (is (= ["master" "feat-x" "feature/bar"]
            (tc/candidates iapp ["switch"] "")))
-    (is (= ["feat-x" "feature/bar"]
-           (tc/candidates iapp ["remove"] "feat")))
     (is (= ["feature/bar"]
            (tc/candidates iapp ["run"] "feature"))))
 
+  (testing "remove completes only worktree names, never main/master"
+    (is (= ["feat-x" "feature/bar"]
+           (tc/candidates iapp ["remove"] "")))
+    (is (= ["feat-x" "feature/bar"]
+           (tc/candidates iapp ["remove"] "feat"))))
+
   (testing "a flag does not consume the name slot"
-    (is (= ["main" "master" "feat-x" "feature/bar"]
+    (is (= ["feat-x" "feature/bar"]
            (tc/candidates iapp ["remove" "--force"] ""))))
 
   (testing "global flag with value before the command still resolves it"
@@ -144,3 +152,17 @@
 
   (testing "main worktree is never listed"
     (is (= [] (completion/worktree-names [(first wts)] nil)))))
+
+(deftest default-branch-token-derivation
+  (testing "attached main worktree yields its own branch token"
+    (is (= "master" (completion/default-branch-token {:branch "refs/heads/master"})))
+    (is (= "main" (completion/default-branch-token {:branch "refs/heads/main"})))))
+
+(deftest removable-names-drops-protected-aliases
+  (testing "exact main/master are dropped; namespaced names are kept"
+    (is (= ["feat-x" "feature/bar" "feature/main"]
+           (completion/removable-names
+             ["feat-x" "main" "feature/bar" "master" "feature/main"]))))
+  (testing "leaves ordinary names untouched"
+    (is (= ["feat-x" "feature/bar"]
+           (completion/removable-names ["feat-x" "feature/bar"])))))

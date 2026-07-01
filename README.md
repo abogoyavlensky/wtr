@@ -255,8 +255,9 @@ Use `--force` only for throwaway work. It passes `--force` to
 `git worktree remove` and deletes the branch with `git branch -D`.
 
 `wtr remove master` and `wtr remove main` are always refused because they target
-the main worktree. Names resolve against `git worktree list`, like `run` and
-`switch`, so namespaced worktrees such as `feature/bar` work.
+the main worktree, and shell completion omits them for `remove` for the same
+reason. Names resolve against `git worktree list`, like `run` and `switch`, so
+namespaced worktrees such as `feature/bar` work.
 
 ### `wtr completion <shell>`
 

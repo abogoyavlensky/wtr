@@ -18,17 +18,57 @@
               (basename path))))
         (rest wts)))
 
-(defn worktree-name-candidates
-  "Completion candidates for a worktree-name positional (run/switch/remove):
-   main/master plus the existing non-main worktree names, derived from
-   `git/worktrees` and the config base-dir prefix. Used as a tiny-cli :complete
-   fn — tiny-cli wraps __complete in try/catch, so a non-repo or bad-config
-   state simply yields no candidates."
-  [_ctx]
-  (let [wts (git/worktrees)
-        base (:base-dir (config/read-config))
+(defn default-branch-token
+  "The single canonical completion token for the main worktree record `main-wt`
+   (first of `git/worktrees`): always `main` or `master`, never a custom branch,
+   since those are the only reserved aliases that resolve to the main worktree.
+   Uses the worktree's own branch when it is `main`/`master`; otherwise (detached
+   or on a custom branch) falls back to whichever exists as a local branch,
+   preferring `main` — mirroring `wtr.commands/main-return-branch`."
+  [main-wt]
+  (let [branch (:branch main-wt)
+        name (when-not (str/blank? (or branch ""))
+               (str/replace branch #"^refs/heads/" ""))]
+    (cond
+      (= name "main") "main"
+      (= name "master") "master"
+      (git/branch-exists? "main") "main"
+      :else "master")))
+
+(defn- names-with-prefix
+  "Non-main worktree names for the current repo, with the config base-dir prefix
+   (\"{base-dir}/{project}/\") stripped where it matches. Shared by the
+   worktree-name completion fns."
+  [wts]
+  (let [base (:base-dir (config/read-config))
         prefix (when-not (str/blank? (or base ""))
                  (str base "/"
                       (basename (:path (first wts)))
                       "/"))]
-    (into ["main" "master"] (worktree-names wts prefix))))
+    (worktree-names wts prefix)))
+
+(defn worktree-name-candidates
+  "Completion candidates for a worktree-name positional on `run`/`switch`: the
+   main worktree's default-branch token (`main` or `master`) plus the existing
+   non-main worktree names, derived from `git/worktrees` and the config base-dir
+   prefix. Used as a tiny-cli :complete fn — tiny-cli wraps __complete in
+   try/catch, so a non-repo or bad-config state simply yields no candidates."
+  [_ctx]
+  (let [wts (git/worktrees)]
+    (into [(default-branch-token (first wts))] (names-with-prefix wts))))
+
+(defn removable-names
+  "The `names` with the protected `main`/`master` aliases dropped (exact matches
+   only, so namespaced names like `feature/main` are kept). Those aliases always
+   resolve to the main worktree in `resolve-remove-target` and are refused, so a
+   secondary worktree literally named `main`/`master` — which the alias shadows —
+   must not be offered as a `remove` candidate."
+  [names]
+  (vec (remove #{"main" "master"} names)))
+
+(defn removable-worktree-name-candidates
+  "Completion candidates for `remove`'s worktree-name positional: the non-main
+   worktree names with `main`/`master` omitted. The main worktree is protected
+   from removal, so offering those aliases would be misleading."
+  [_ctx]
+  (removable-names (names-with-prefix (git/worktrees))))

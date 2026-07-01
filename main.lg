@@ -50,7 +50,7 @@
                :doc "Remove a worktree and clean up its branch."
                :args [{:key :name
                        :doc "Worktree name to remove."
-                       :complete completion/worktree-name-candidates}]
+                       :complete completion/removable-worktree-name-candidates}]
                :opts [{:key :force
                        :long "force"
                        :doc "Force removal of a dirty worktree and force-delete the branch."}]
