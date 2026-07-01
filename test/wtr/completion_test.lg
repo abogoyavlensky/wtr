@@ -157,3 +157,12 @@
   (testing "attached main worktree yields its own branch token"
     (is (= "master" (completion/default-branch-token {:branch "refs/heads/master"})))
     (is (= "main" (completion/default-branch-token {:branch "refs/heads/main"})))))
+
+(deftest removable-names-drops-protected-aliases
+  (testing "exact main/master are dropped; namespaced names are kept"
+    (is (= ["feat-x" "feature/bar" "feature/main"]
+           (completion/removable-names
+             ["feat-x" "main" "feature/bar" "master" "feature/main"]))))
+  (testing "leaves ordinary names untouched"
+    (is (= ["feat-x" "feature/bar"]
+           (completion/removable-names ["feat-x" "feature/bar"])))))

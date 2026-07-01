@@ -57,9 +57,18 @@
   (let [wts (git/worktrees)]
     (into [(default-branch-token (first wts))] (names-with-prefix wts))))
 
+(defn removable-names
+  "The `names` with the protected `main`/`master` aliases dropped (exact matches
+   only, so namespaced names like `feature/main` are kept). Those aliases always
+   resolve to the main worktree in `resolve-remove-target` and are refused, so a
+   secondary worktree literally named `main`/`master` — which the alias shadows —
+   must not be offered as a `remove` candidate."
+  [names]
+  (vec (remove #{"main" "master"} names)))
+
 (defn removable-worktree-name-candidates
-  "Completion candidates for `remove`'s worktree-name positional: only the
-   non-main worktree names. `main`/`master` are deliberately omitted — the main
-   worktree is protected from removal, so offering them would be misleading."
+  "Completion candidates for `remove`'s worktree-name positional: the non-main
+   worktree names with `main`/`master` omitted. The main worktree is protected
+   from removal, so offering those aliases would be misleading."
   [_ctx]
-  (names-with-prefix (git/worktrees)))
+  (removable-names (names-with-prefix (git/worktrees))))
