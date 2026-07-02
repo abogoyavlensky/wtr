@@ -76,28 +76,28 @@ dashboard → tui/select (actions: run, switch, remove[destructive])
 - Modify: `src/wtr/dashboard.lg`
 - Test: `test/wtr/dashboard_test.lg`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   In `dashboard_test.lg`:
   - Extend `result->intent-maps-results` with `{:type :action :action :remove :item "feat-x" :index 1}` → `[:remove "feat-x"]`.
   - Add a `pick!` remove-with-confirm case: `{:items ["main" "feat-x"] :remove-fn <records to atom> :screen false :read-key-fn (scripted [:down "d" "y"]) :render-fn (fn [_] nil)}` → atom holds `"feat-x"`.
   - Add a `pick!` confirm-cancel case: same but `(scripted [:down "d" "n"])` → atom stays untouched.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — `remove` action is unregistered, so `"d"` is ignored, the confirm never appears, and `:remove-fn` is never called.
 
-- [ ] **Step 3: Implement the remove action**
+- [x] **Step 3: Implement the remove action**
   In `src/wtr/dashboard.lg`: add `remove-action` (destructive + confirm config as in the design); add private `remove-name!` calling `(cmds/remove {:args {:name name} :opts {}})`; in `pick!` register `[run-action switch-action remove-action]`, read `:remove-fn` (default `remove-name!`), extend the `dissoc` to drop `:remove-fn`, and add `:remove (remove-fn (second intent))` to the `case`. Leave `result->intent` as-is.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS (new + existing dashboard tests green).
 
-- [ ] **Step 5: Full check**
+- [x] **Step 5: Full check**
   Run: `lgx check`
   Expected: fmt clean, lint 0/0, tests PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `feat: add remove action to the worktree dashboard`
 
 ---
@@ -107,11 +107,36 @@ dashboard → tui/select (actions: run, switch, remove[destructive])
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Update the dashboard section**
+- [x] **Step 1: Update the dashboard section**
   In the `### \`wtr\` (no command)` section, add `d remove` to the footer line (`↑/↓ navigate   enter select   r run   s switch   d remove   q quit`) and mention that `d` removes the highlighted worktree and its branch after a confirmation (like `wtr remove <name>`, safe delete — unmerged branches are kept).
 
-- [ ] **Step 2: Rebuild and manually verify (isolated sandbox)**
+- [x] **Step 2: Rebuild and manually verify (isolated sandbox)**
   Run: `lgx build`, then set up a throwaway git repo with an extra worktree and drive `./bin/wtr` under a pty (reuse the scratchpad pty driver). Confirm: footer shows `d remove`; `[:down "d" "y"]` removes the highlighted worktree and its branch (gone from `git worktree list`), with the result printed and exit 0; `[:down "d" "n"]` leaves the worktree in place. Do NOT run this against the wtr checkout itself.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `docs: document the dashboard remove action`
+
+---
+
+## Implementation Summary
+
+**Status: COMPLETE.**
+
+- `feat` `641a3e1` — added destructive `remove-action` (`d`), `remove-name!` → `cmds/remove` (safe delete, no force), registered it in `pick!` and dispatched `:remove` (injectable `:remove-fn`). `result->intent` was already generic, so it needed no change. Tests: remove intent case + confirm (`[:down "d" "y"]`) and confirm-cancel (`[:down "d" "n"]`) wiring.
+- `docs` `0ec99b8` — README dashboard footer now shows `r run · s switch · d remove · q quit` with a confirmation note.
+
+### Codex review (Task 1, uncommitted)
+
+Two findings, both handled:
+- **[P3] Confirm wording overstated branch deletion** — fixed. The prompt is now `Remove worktree '<name>'?` (not "…and delete its branch?"), since `wtr remove` does a *safe* delete: unmerged branches are kept and detached worktrees have no branch. What actually happened is reported by `cmds/remove` afterward. (This differs from the wording sketched in the Implementation shape above.)
+- **[P2] `remove` is offered on the `main`/`master` row too** — accepted as a documented tradeoff. tiny-tui actions are per-list, not per-row, and the main token must stay for `run`/`switch`. Pressing `d` there confirms and then `cmds/remove` refuses cleanly (exit 1) — identical to `wtr remove master`. A true fix would need a per-item action predicate in tiny-tui (out of scope).
+
+### Verification
+- `lgx check`: 44 tests, 121 assertions, 0 failures; lint 0/0; fmt clean.
+- Manual, rebuilt `./bin/wtr` in **isolated sandbox repos** (never the working checkout):
+  - Footer shows `d remove`.
+  - `[:down "d" "y"]` on `wt-feat`: confirm prompt `Remove worktree 'wt-feat'?` → printed `Removed worktree …/wt-feat and branch feat.`, worktree + branch gone, exit 0.
+  - `[:down "d" "n" "q"]`: confirm dismissed, nothing removed (`wt-feat` intact), exit 0.
+
+### Notes
+- Deliberate scope (as with `run`/`switch`): single-shot, no refresh loop — chosen to preserve `cmds/remove`'s result message (including the "Kept branch …" partial-failure note).
