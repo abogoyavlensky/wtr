@@ -1,0 +1,56 @@
+(ns wtr.dashboard-test
+  (:require [clojure.test :refer [deftest is testing]]
+            [wtr.dashboard :as dashboard]))
+
+(defn- scripted
+  "Read-key fn that returns the scripted messages one by one, then nil (EOF)."
+  [msgs]
+  (let [q (atom (seq msgs))]
+    (fn []
+      (let [m (first @q)]
+        (swap! q rest)
+        m))))
+
+(deftest result->intent-maps-results
+  (testing "enter selects → run intent"
+    (is (= [:run "feat-x"]
+           (dashboard/result->intent {:type :select
+                                      :item "feat-x"
+                                      :index 1}))))
+  (testing "run action key → run intent"
+    (is (= [:run "feat-x"]
+           (dashboard/result->intent
+             {:type :action
+              :action :run
+              :item "feat-x"
+              :index 1}))))
+  (testing "cancel → cancel intent"
+    (is (= :cancel (dashboard/result->intent {:type :cancel})))))
+
+(deftest pick-acts-on-selection
+  (testing "arrow-down then enter runs the highlighted worktree"
+    (let [ran (atom nil)]
+      (dashboard/pick! {:items ["main" "feat-x"]
+                        :run-fn (fn [name] (reset! ran name))
+                        :screen false
+                        :read-key-fn (scripted [:down :enter])
+                        :render-fn (fn [_] nil)})
+      (is (= "feat-x" @ran))))
+
+  (testing "the run action key runs the highlighted worktree"
+    (let [ran (atom nil)]
+      (dashboard/pick! {:items ["main" "feat-x"]
+                        :run-fn (fn [name] (reset! ran name))
+                        :screen false
+                        :read-key-fn (scripted ["r"])
+                        :render-fn (fn [_] nil)})
+      (is (= "main" @ran))))
+
+  (testing "cancelling runs nothing"
+    (let [ran (atom :untouched)]
+      (dashboard/pick! {:items ["main" "feat-x"]
+                        :run-fn (fn [name] (reset! ran name))
+                        :screen false
+                        :read-key-fn (scripted [:esc])
+                        :render-fn (fn [_] nil)})
+      (is (= :untouched @ran)))))
