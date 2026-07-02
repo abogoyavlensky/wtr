@@ -294,7 +294,8 @@
           main (:path (first wts))
           target (resolve-switch-target wts name)]
       (if-not target
-        {:ok? false :message (str "Worktree not found: " name)}
+        {:ok? false
+         :message (str "Worktree not found: " name)}
         (do
           (git/switch-ref! main (:ref target) (= :detach (:mode target)))
           {:ok? true
@@ -332,17 +333,21 @@
           target (resolve-remove-target wts name)]
       (cond
         (nil? target)
-        {:ok? false :removed? false :message (str "Worktree not found: " name)}
+        {:ok? false
+         :removed? false
+         :message (str "Worktree not found: " name)}
 
         (:main? target)
-        {:ok? false :removed? false
+        {:ok? false
+         :removed? false
          :message (str "Refusing to remove the main worktree: " name)}
 
         :else
         (do
           (git/remove-worktree! main (:path target) force?)
           (let [branch (:branch target)]
-            {:ok? true :removed? true
+            {:ok? true
+             :removed? true
              :message (if branch
                         (let [res (git/delete-branch! main branch force?)]
                           (if (zero? (:exit res))
@@ -355,7 +360,8 @@
                                  " Re-run with --force to delete it.")))
                         (str "Removed worktree " (:path target) "."))}))))
     (catch Exception e
-      {:ok? false :removed? false
+      {:ok? false
+       :removed? false
        :message (first-nonblank-line (:stderr (ex-data e)) (ex-message e))})))
 
 (defn remove
