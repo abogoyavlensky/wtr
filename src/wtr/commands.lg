@@ -283,72 +283,88 @@
             (println "Error:" (ex-message e)))))
       (os/exit 1))))
 
+(defn switch!
+  "Perform `wtr switch <name>` and return a result map — never prints or exits.
+     {:ok? true  :message \"Switched main worktree to ...\"}
+     {:ok? false :message \"<reason>\"}
+   The CLI `switch` command and the dashboard both build on this."
+  [name]
+  (try
+    (let [wts (git/worktrees)
+          main (:path (first wts))
+          target (resolve-switch-target wts name)]
+      (if-not target
+        {:ok? false :message (str "Worktree not found: " name)}
+        (do
+          (git/switch-ref! main (:ref target) (= :detach (:mode target)))
+          {:ok? true
+           :message (if (= :detach (:mode target))
+                      (str "Switched main worktree to '" (:label target)
+                           "' (detached at " (subs (:sha target) 0 7)
+                           "). Run 'wtr switch " (main-return-branch (first wts))
+                           "' to return.")
+                      (str "Switched main worktree to " (:ref target)))})))
+    (catch Exception e
+      {:ok? false
+       :message (first-nonblank-line (:stderr (ex-data e)) (ex-message e))})))
+
 (defn switch
   "Switch the main worktree to a worktree's branch.
    `master`/`main` re-attach the main worktree to that branch; any other name
    detaches the main worktree at the matching worktree's branch tip, so its code
    can be read/built/run from the main project dir without claiming the branch."
   [{:keys [args]}]
-  (try
-    (let [name (:name args)
-          wts (git/worktrees)
-          main (:path (first wts))
-          target (resolve-switch-target wts name)]
-      (when-not target
-        (error-exit (str "Worktree not found: " name)))
-      (git/switch-ref! main (:ref target) (= :detach (:mode target)))
-      (if (= :detach (:mode target))
-        (println (str "Switched main worktree to '" (:label target)
-                      "' (detached at " (subs (:sha target) 0 7)
-                      "). Run 'wtr switch " (main-return-branch (first wts))
-                      "' to return."))
-        (println "Switched main worktree to" (:ref target))))
-    (catch Exception e
-      (let [stderr (:stderr (ex-data e))]
-        (binding [*out* *err*]
-          (if stderr
-            (print stderr)
-            (println "Error:" (ex-message e)))))
-      (os/exit 1))))
+  (let [res (switch! (:name args))]
+    (if (:ok? res)
+      (println (:message res))
+      (error-exit (:message res)))))
 
-(defn remove
-  "Remove a worktree and clean up its branch."
-  [{:keys [args opts]}]
+(defn remove!
+  "Perform a `wtr remove <name>` (force? picks -d vs -D) and return a result
+   map — never prints or exits.
+     {:ok? true  :removed? true  :message \"Removed worktree ...\"}
+     {:ok? false :removed? false :message \"<reason>\"}   ; not found / main worktree
+   The CLI `remove` command and the dashboard both build on this."
+  [name force?]
   (try
-    (let [name (:name args)
-          force? (:force opts)
-          wts (git/worktrees)
+    (let [wts (git/worktrees)
           main (:path (first wts))
           target (resolve-remove-target wts name)]
       (cond
         (nil? target)
-        (error-exit (str "Worktree not found: " name))
+        {:ok? false :removed? false :message (str "Worktree not found: " name)}
 
         (:main? target)
-        (error-exit (str "Refusing to remove the main worktree: " name))
+        {:ok? false :removed? false
+         :message (str "Refusing to remove the main worktree: " name)}
 
         :else
         (do
           (git/remove-worktree! main (:path target) force?)
           (let [branch (:branch target)]
-            (if branch
-              (let [res (git/delete-branch! main branch force?)]
-                (if (zero? (:exit res))
-                  (println (str "Removed worktree " (:path target)
-                                " and branch " branch "."))
-                  (println (str "Removed worktree " (:path target)
-                                ". Kept branch '" branch "': "
-                                (first-nonblank-line (:err res)
-                                                     "could not delete branch")
-                                " Re-run with --force to delete it."))))
-              (println (str "Removed worktree " (:path target) ".")))))))
+            {:ok? true :removed? true
+             :message (if branch
+                        (let [res (git/delete-branch! main branch force?)]
+                          (if (zero? (:exit res))
+                            (str "Removed worktree " (:path target)
+                                 " and branch " branch ".")
+                            (str "Removed worktree " (:path target)
+                                 ". Kept branch '" branch "': "
+                                 (first-nonblank-line (:err res)
+                                                      "could not delete branch")
+                                 " Re-run with --force to delete it.")))
+                        (str "Removed worktree " (:path target) "."))}))))
     (catch Exception e
-      (let [stderr (:stderr (ex-data e))]
-        (binding [*out* *err*]
-          (if stderr
-            (print stderr)
-            (println "Error:" (ex-message e)))))
-      (os/exit 1))))
+      {:ok? false :removed? false
+       :message (first-nonblank-line (:stderr (ex-data e)) (ex-message e))})))
+
+(defn remove
+  "Remove a worktree and clean up its branch."
+  [{:keys [args opts]}]
+  (let [res (remove! (:name args) (:force opts))]
+    (if (:ok? res)
+      (println (:message res))
+      (error-exit (:message res)))))
 
 (defn config
   "Show the config file path and its content (read-only). When the file does
