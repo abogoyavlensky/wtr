@@ -68,27 +68,27 @@ dashboard → tui/select (actions: run, switch)
 - Modify: `src/wtr/dashboard.lg`
 - Test: `test/wtr/dashboard_test.lg`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   In `dashboard_test.lg`:
   - Extend `result->intent-maps-results` with: `{:type :action :action :switch :item "feat-x" :index 1}` → `[:switch "feat-x"]`.
   - Add a `pick!` case: call with `{:items ["main" "feat-x"] :switch-fn <records to atom> :screen false :read-key-fn (scripted ["s"]) :render-fn (fn [_] nil)}` and assert the atom holds `"main"`. Keep a `run-fn` in the map (or a separate case) to confirm `run` still works.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — `switch` action is unregistered, so `["s"]` cancels (atom untouched) and `result->intent` has no `:switch` mapping.
 
-- [ ] **Step 3: Implement the switch action**
+- [x] **Step 3: Implement the switch action**
   In `src/wtr/dashboard.lg`: add `switch-action`; generalize `result->intent`'s `:action` branch to `[(:action result) (:item result)]`; add private `switch-name!` calling `(cmds/switch {:args {:name name}})`; in `pick!` register `[run-action switch-action]`, read `:switch-fn` (default `switch-name!`), `dissoc` both `:run-fn`/`:switch-fn` from the merged opts, and dispatch `:run`/`:switch` via `case` on `(first intent)`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS (new + existing dashboard tests green).
 
-- [ ] **Step 5: Full check**
+- [x] **Step 5: Full check**
   Run: `lgx check`
   Expected: fmt clean, lint 0/0, tests PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `feat: add switch action to the worktree dashboard`
 
 ---
@@ -98,11 +98,28 @@ dashboard → tui/select (actions: run, switch)
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Update the dashboard footer example**
+- [x] **Step 1: Update the dashboard footer example**
   In the `### \`wtr\` (no command)` section, add `s switch` to the footer line so it reads `↑/↓ navigate   enter select   r run   s switch   q quit`, and mention `s` switches the main worktree to the highlighted worktree (like `wtr switch <name>`).
 
-- [ ] **Step 2: Rebuild and manually verify**
+- [x] **Step 2: Rebuild and manually verify**
   Run: `lgx build`, then drive `./bin/wtr` under a pty (reuse the scratchpad pty driver): confirm the footer shows `s switch`, and that pressing `s` on a highlighted worktree runs `cmds/switch` (main worktree detaches at that branch, confirmation printed) and exits cleanly. Optionally switch back with `wtr switch master`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `docs: document the dashboard switch action`
+
+---
+
+## Implementation Summary
+
+**Status: COMPLETE.**
+
+- `feat` `a05c3a9` — added `switch-action` (`s`), generalized `result->intent` to `[(:action result) (:item result)]`, added `switch-name!` → `cmds/switch`, and dispatched `:run`/`:switch` in `pick!` (injectable `:switch-fn`). Tests: switch intent case + headless `["s"]` wiring test.
+- `docs` `f4785a2` — README dashboard footer now shows `r run · s switch · q quit`.
+
+### Verification
+- `lgx check`: 44 tests, 118 assertions, 0 failures; lint 0/0; fmt clean.
+- Codex second-opinion review (Task 1, uncommitted): clean, no findings.
+- Manual, rebuilt `./bin/wtr` in an **isolated sandbox repo** (to avoid mutating the working checkout): footer shows `s switch`; `down` then `s` on the `wt-feat` worktree switched the main worktree to detached HEAD at its tip and printed `Switched main worktree to 'wt-feat' (detached at …). Run 'wtr switch main' to return.`, exit 0. `q`/cancel left the repo unchanged.
+
+### Notes
+- Deliberate scope: single-shot (no refresh loop) and no confirmation gate, matching `run`. A future `remove` action is the one that would want a refresh loop.
