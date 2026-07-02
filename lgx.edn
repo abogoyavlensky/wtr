@@ -3,9 +3,12 @@
  :main "main.lg"
  :targets {:bin {:out "bin/wtr"}}
  :lg-version "1.11.1"
- :deps {tiny-cli {;:local/root "../worktrees/tiny-cli/auto-completion"
-                  :git/url "https://github.com/abogoyavlensky/tiny-cli"
-                  :git/tag "v0.2.0"}
+ :deps {tiny-cli {:local/root "../tiny-cli"
+                  ;; Dev-pinned to the local checkout for the root-command
+                  ;; handler work. Restore a published ref before release:
+                  ;; :git/url "https://github.com/abogoyavlensky/tiny-cli"
+                  ;; :git/tag "v0.2.0"
+                  }
         tiny-tui {:git/url "https://github.com/abogoyavlensky/tiny-tui"
                   :git/sha "653043c350943cd108802ab168199da0dccc3e41"}}
  :tasks {fmt {:doc "Format source files (available actions: fix, check; default: fix)"
