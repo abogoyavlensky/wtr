@@ -34,17 +34,16 @@
   (cmds/run-in-dir! (cmds/resolve-worktree-path (git/worktrees) name) []))
 
 (defn pick!
-  "Show the inline worktree picker and act on the choice. `opts` are merged
-   into tiny-tui.core/select — tests inject :items, :screen false, a scripted
-   :read-key-fn, and a :render-fn; :run-fn overrides the run action (defaults
-   to run-name!). Candidates are the tab-completion worktree names unless
-   :items is supplied. Returns nil."
+  "Show the full-screen worktree picker and act on the choice. `opts` are
+   merged into tiny-tui.core/select — tests inject :items, :screen false, a
+   scripted :read-key-fn, and a :render-fn; :run-fn overrides the run action
+   (defaults to run-name!). Candidates are the tab-completion worktree names
+   unless :items is supplied. Returns nil."
   ([] (pick! {}))
   ([opts]
    (let [run-fn (:run-fn opts run-name!)
          base {:title "Worktrees"
                :item->text identity
-               :inline? true
                :actions [run-action]}
          base (if (contains? opts :items)
                 base
@@ -57,7 +56,7 @@
 
 (defn show!
   "Root handler for a bare `wtr` invocation. On an interactive terminal, shows
-   the inline worktree dashboard; otherwise (piped/redirected) prints the
+   the full-screen worktree dashboard; otherwise (piped/redirected) prints the
    static worktree list. Any TUI failure also falls back to the list."
   [context]
   (if (interactive?)
