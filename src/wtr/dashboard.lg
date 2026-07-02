@@ -1,5 +1,6 @@
 (ns wtr.dashboard
-  (:require [term]
+  (:require [clojure.string :as str]
+            [term]
             [tiny-tui.core :as tui]
             [wtr.commands :as cmds]
             [wtr.completion :as completion]
@@ -10,6 +11,14 @@
    run. tiny-tui reports no size off a tty and throws if asked to render there."
   []
   (some? (term/size)))
+
+(def ^:private create-action
+  ;; :returns? exits select so we can prompt for a name outside the loop, then
+  ;; re-enter focused on the new worktree.
+  {:id :create
+   :key "c"
+   :label "create"
+   :returns? true})
 
 (def ^:private switch-action
   {:id :switch
@@ -51,37 +60,75 @@
        :status (:message res)}
       {:status (:message res)})))
 
+(defn- create-input
+  "Prompt for a new worktree name, rejecting blank and existing-branch names
+   inline. Returns the entered name, or nil on cancel."
+  []
+  (tui/input {:title "New worktree name"
+              :placeholder "name"
+              :validate (fn [text]
+                          (cond
+                            (str/blank? text) "Name can't be empty"
+                            (git/branch-exists? text)
+                            (str "Branch '" text "' already exists")
+                            :else nil))}))
+
+(defn- create-name!
+  "Prompt for a name and create the worktree under `base-dir` (the --base-dir
+   override, or nil for the configured base). Returns a map:
+     {:name <new-name>}  on success — the dashboard re-enters focused there,
+     {:status <error>}   on a post-validation failure — shown as a status line,
+     {}                  on cancel."
+  [base-dir]
+  (if-let [name (create-input)]
+    (let [res (cmds/create! name nil base-dir)]
+      (if (:ok? res)
+        {:name (:name res)}
+        {:status (:message res)}))
+    {}))
+
 (defn pick!
   "Show the full-screen worktree manager and act on the choice. `enter` opens a
    shell in the highlighted worktree (exiting the manager); `s`/`d` switch and
-   remove in place via tiny-tui's :on-action, keeping the manager open with a
-   status line (remove refreshes the list). `opts` are merged into
+   remove in place via tiny-tui's :on-action; `c` leaves select to prompt for a
+   name, creates a worktree, and re-enters focused on it. `opts` are merged into
    tiny-tui.core/select — tests inject :items, :screen false, a scripted
-   :read-key-fn, and a :render-fn; :run-fn, :switch-fn, and :remove-fn override
-   the run/switch/remove handlers (defaulting to run-name!/on-switch/on-remove).
-   Candidates are the tab-completion worktree names unless :items is supplied.
-   Returns nil."
+   :read-key-fn, and a :render-fn; :run-fn, :switch-fn, :remove-fn, and
+   :create-fn override the handlers (defaulting to
+   run-name!/on-switch/on-remove/create-name!). Candidates are the tab-completion
+   worktree names unless :items is supplied. Returns nil."
   ([] (pick! {}))
   ([opts]
    (let [run-fn (:run-fn opts run-name!)
          switch-fn (:switch-fn opts on-switch)
          remove-fn (:remove-fn opts on-remove)
+         create-fn (:create-fn opts (fn [] (create-name! (:base-dir opts))))
          on-action (fn [event]
                      (case (:action event)
                        :switch (switch-fn event)
                        :remove (remove-fn event)))
-         base {:title "Worktrees"
-               :item->text identity
-               :actions [switch-action remove-action]
-               :on-action on-action}
-         base (if (contains? opts :items)
-                base
-                (assoc base :items (completion/worktree-name-candidates nil)))
-         result (tui/select
-                  (merge base (dissoc opts :run-fn :switch-fn :remove-fn)))]
-     (when (= :select (:type result))
-       (run-fn (:item result)))
-     nil)))
+         select-opts (dissoc opts :run-fn :switch-fn :remove-fn :create-fn
+                             :base-dir)]
+     (loop [cursor-item nil
+            status nil]
+       (let [base {:title "Worktrees"
+                   :item->text identity
+                   :actions [create-action switch-action remove-action]
+                   :on-action on-action
+                   :cursor-item cursor-item
+                   :status status}
+             base (if (contains? opts :items)
+                    base
+                    (assoc base :items (completion/worktree-name-candidates nil)))
+             result (tui/select (merge base select-opts))]
+         (cond
+           (= :select (:type result))
+           (run-fn (:item result))
+
+           (and (= :action (:type result)) (= :create (:action result)))
+           (let [r (create-fn)] (recur (:name r) (:status r)))
+
+           :else nil))))))
 
 (defn show!
   "Root handler for a bare `wtr` invocation. On an interactive terminal, shows
@@ -90,6 +137,6 @@
   [context]
   (if (interactive?)
     (try
-      (pick!)
+      (pick! {:base-dir (:base-dir (:global context))})
       (catch Exception _ (cmds/list context)))
     (cmds/list context)))

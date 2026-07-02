@@ -56,3 +56,38 @@
                         :read-key-fn (scripted [:down "d" "n" "q"])
                         :render-fn (fn [_] nil)})
       (is (= :untouched @removed)))))
+
+(deftest pick-create
+  (testing "c creates, then the cursor lands on the new worktree for enter"
+    (let [created (atom false)
+          ran (atom nil)]
+      (dashboard/pick! {:items ["main" "feat-x" "new-wt"]
+                        :create-fn (fn [] (reset! created true) {:name "new-wt"})
+                        :run-fn (fn [name] (reset! ran name))
+                        :screen false
+                        :read-key-fn (scripted ["c" :enter])
+                        :render-fn (fn [_] nil)})
+      (is (= true @created))
+      (is (= "new-wt" @ran))))
+
+  (testing "cancelling create returns to the list at the top"
+    (let [ran (atom nil)]
+      (dashboard/pick! {:items ["main" "feat-x" "new-wt"]
+                        :create-fn (fn [] {})
+                        :run-fn (fn [name] (reset! ran name))
+                        :screen false
+                        :read-key-fn (scripted ["c" :enter])
+                        :render-fn (fn [_] nil)})
+      (is (= "main" @ran))))
+
+  (testing "a failed create shows its error as a status and stays at the top"
+    (let [frames (atom [])
+          ran (atom nil)]
+      (dashboard/pick! {:items ["main" "feat-x" "new-wt"]
+                        :create-fn (fn [] {:status "create failed: boom"})
+                        :run-fn (fn [name] (reset! ran name))
+                        :screen false
+                        :read-key-fn (scripted ["c" :enter])
+                        :render-fn (fn [s] (swap! frames conj s))})
+      (is (= "main" @ran))
+      (is (some (fn [f] (re-find #"boom" f)) @frames)))))
