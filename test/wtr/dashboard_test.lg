@@ -31,6 +31,13 @@
               :action :switch
               :item "feat-x"
               :index 1}))))
+  (testing "remove action key → remove intent"
+    (is (= [:remove "feat-x"]
+           (dashboard/result->intent
+             {:type :action
+              :action :remove
+              :item "feat-x"
+              :index 1}))))
   (testing "cancel → cancel intent"
     (is (= :cancel (dashboard/result->intent {:type :cancel})))))
 
@@ -61,6 +68,24 @@
                         :read-key-fn (scripted ["s"])
                         :render-fn (fn [_] nil)})
       (is (= "main" @switched))))
+
+  (testing "the remove action key removes after confirmation"
+    (let [removed (atom nil)]
+      (dashboard/pick! {:items ["main" "feat-x"]
+                        :remove-fn (fn [name] (reset! removed name))
+                        :screen false
+                        :read-key-fn (scripted [:down "d" "y"])
+                        :render-fn (fn [_] nil)})
+      (is (= "feat-x" @removed))))
+
+  (testing "cancelling the remove confirmation removes nothing"
+    (let [removed (atom :untouched)]
+      (dashboard/pick! {:items ["main" "feat-x"]
+                        :remove-fn (fn [name] (reset! removed name))
+                        :screen false
+                        :read-key-fn (scripted [:down "d" "n"])
+                        :render-fn (fn [_] nil)})
+      (is (= :untouched @removed))))
 
   (testing "cancelling runs nothing"
     (let [ran (atom :untouched)]
