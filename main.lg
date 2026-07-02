@@ -2,7 +2,8 @@
   (:require [io :as io]
             [tiny-cli.core :as cli]
             [wtr.commands :as cmds]
-            [wtr.completion :as completion]))
+            [wtr.completion :as completion]
+            [wtr.dashboard :as dashboard]))
 
 (defn- version []
   (io/slurp (io/resource "VERSION")))
@@ -11,6 +12,10 @@
   {:name "wtr"
    :version (version)
    :doc "Small git worktree helper."
+   ;; Bare `wtr` (no command) opens the interactive worktree dashboard on a
+   ;; terminal, or prints the static list when piped. `wtr help`/`--help` are
+   ;; unaffected. See wtr.dashboard/show!.
+   :run dashboard/show!
    :opts [{:key :base-dir
            :long "base-dir"
            :value? true
