@@ -3,19 +3,12 @@
  :main "main.lg"
  :targets {:bin {:out "bin/wtr"}}
  :lg-version "1.11.1"
- :deps {tiny-cli {:local/root "../tiny-cli"
-                  ;; Dev-pinned to the local checkout for the root-command
-                  ;; handler work. Restore a published ref before release:
-                  ;; :git/url "https://github.com/abogoyavlensky/tiny-cli"
-                  ;; :git/tag "v0.2.0"
-                  }
-        tiny-tui {:local/root "../tiny-tui"
-                  ;; Dev-pinned to the local checkout for the dashboard create
-                  ;; action (:cursor-item / :returns?). Restore a published ref
-                  ;; before release:
-                  ;; :git/url "https://github.com/abogoyavlensky/tiny-tui"
-                  ;; :git/sha "53ea48411f45a78a09d7fe215d32530568fe5ce0"
-                  }}
+ :deps {tiny-cli {;:local/root "../tiny-cli"
+                  :git/url "https://github.com/abogoyavlensky/tiny-cli"
+                  :git/tag "v0.2.1"}
+        tiny-tui {;:local/root "../tiny-tui"
+                  :git/url "https://github.com/abogoyavlensky/tiny-tui"
+                  :git/tag "v0.1.1"}}
  :tasks {fmt {:doc "Format source files (available actions: fix, check; default: fix)"
               :args [{:name :action
                       :type [:enum "fix" "check"]
