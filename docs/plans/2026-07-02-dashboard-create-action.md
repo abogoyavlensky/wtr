@@ -70,19 +70,19 @@ wtr must consume the local tiny-tui with the new features, so its `lgx.edn` tiny
 - Test: `../tiny-tui/test/tiny_tui/core_test.lg`
 - Docs: `../tiny-tui/README.md`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   In `core_test.lg`, add: (a) `tui/select` with `:cursor-item` over `["a" "b" "c"]` + scripted `[:enter]` returns `{:type :select :item "c" :index 2}`; an unknown `:cursor-item` returns index 0; (b) a `:returns? true` action with `:on-action` set — scripted `["c"]` returns `{:type :action :action :new …}` rather than looping. Use the existing `scripted`/`select-opts` patterns.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `cd ../tiny-tui && lgx test` — Expected: FAIL (no `:cursor-item`, `:returns?` swallowed by on-action).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
   `list.lg` `create`: set `:cursor` to the index of `:cursor-item` in `items` (`keep-indexed`, `or … 0`). `core.lg` `select-update`: add `(and action (:returns? action)) [state event]` before the `(= :action …) (apply-on-action …)` branch; update the `select` docstring to mention `:cursor-item` and `:returns?`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `cd ../tiny-tui && lgx test` — Expected: PASS.
 
-- [ ] **Step 5: Docs + full check + commit**
+- [x] **Step 5: Docs + full check + commit**
   Document `:cursor-item` and `:returns?` in the tiny-tui README select/App-spec section. Run `cd ../tiny-tui && lgx check` (lg + clj + bb, lint, fmt) — Expected: all green. Commit in `../tiny-tui`: `feat: add :cursor-item and :returns? to select`.
 
 ---
@@ -92,13 +92,13 @@ wtr must consume the local tiny-tui with the new features, so its `lgx.edn` tiny
 **Files:**
 - Modify: `lgx.edn`
 
-- [ ] **Step 1: Switch the dep**
+- [x] **Step 1: Switch the dep**
   In `lgx.edn`, change the `tiny-tui` dep to `{:local/root "../tiny-tui"}` (comment out the `:git/url`/`:git/sha` for later restoration).
 
-- [ ] **Step 2: Verify resolution**
+- [x] **Step 2: Verify resolution**
   Run: `lgx test` — Expected: existing 44 tests PASS against the local tiny-tui.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `chore: dev-pin tiny-tui to local root for create action`
 
 ---
@@ -109,16 +109,16 @@ wtr must consume the local tiny-tui with the new features, so its `lgx.edn` tiny
 - Modify: `src/wtr/commands.lg`
 - Test: `test/wtr/commands_test.lg` (existing — must stay green)
 
-- [ ] **Step 1: Add `create!`**
+- [x] **Step 1: Add `create!`**
   Add public `create!` `[name from-ref base-dir-override]` returning `{:ok? true :name :path :from}` / `{:ok? false :message}` per the design — `ensure-config!`, path build, branch/dir guards, `git/create-worktree!`, try/catch → `{:ok? false :message (first-nonblank-line …)}`. No print, no exit.
 
-- [ ] **Step 2: Rewrite the CLI wrapper**
+- [x] **Step 2: Rewrite the CLI wrapper**
   `create` calls `create!` with `(:from opts)`/`(:base-dir global)`; on failure `error-exit`; on success print the existing two lines from the result then the existing `--sh` block. Keep `main.lg`'s create spec untouched.
 
-- [ ] **Step 3: Verify + smoke**
+- [x] **Step 3: Verify + smoke**
   Run: `lgx test` — Expected: PASS. Run: `lgx build`. In a sandbox repo, confirm `./bin/wtr create x` prints the same two lines and `./bin/wtr create --sh x2` drops into a shell; a duplicate name still errors with exit 1.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `refactor: add silent create! helper behind the CLI command`
 
 ---
@@ -129,22 +129,22 @@ wtr must consume the local tiny-tui with the new features, so its `lgx.edn` tiny
 - Modify: `src/wtr/dashboard.lg`
 - Test: `test/wtr/dashboard_test.lg`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   In `dashboard_test.lg`, add: a create-focus case — `(scripted ["c" :enter])` with `:items ["main" "feat-x" "new-wt"]`, `:create-fn (fn [] "new-wt")`, `:run-fn` recording → `:run-fn` gets `"new-wt"`; a create-cancel case — `:create-fn (fn [] nil)` → `:run-fn` gets `"main"`. Keep the existing enter/s/d cases.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test` — Expected: FAIL (no `create-action`, no outer loop / `:cursor-item`).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
   Add `create-action`, `create-input`, `create-name!`; rewrite `pick!` with the outer loop, `:create-fn`, `:actions [create-action switch-action remove-action]`, and `:cursor-item` from the loop var (dissoc `:create-fn` too). Keep `on-switch`/`on-remove`/`run-name!`/`show!`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test` — Expected: PASS.
 
-- [ ] **Step 5: Full check + codex review**
+- [x] **Step 5: Full check + codex review**
   Run: `lgx check` — Expected: green. Then run `review-with-codex` on the uncommitted wtr changes and address must-fix findings.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `feat: add create action to the worktree dashboard`
 
 ---
@@ -154,11 +154,39 @@ wtr must consume the local tiny-tui with the new features, so its `lgx.edn` tiny
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Update the dashboard section**
+- [x] **Step 1: Update the dashboard section**
   Footer becomes `↑/↓ navigate   enter select   c create   s switch   d remove   q quit`. Note `c` prompts for a name, creates the worktree, and returns with the cursor on it (press `enter` to open a shell there); blank/duplicate names are rejected.
 
-- [ ] **Step 2: Rebuild and verify in an isolated sandbox**
+- [x] **Step 2: Rebuild and verify in an isolated sandbox**
   Run: `lgx build`, then drive `./bin/wtr` under a pty (extend the scratchpad driver to type a name): `c` → type `new-x` → `enter` (submit) → worktree `new-x` created and present in `git worktree list`; the dashboard returns with the cursor on `new-x`; a following `enter` opens a shell there (send `exit`). Also confirm a duplicate name shows the inline validator error. Never run against the wtr checkout itself.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `docs: document the dashboard create action`
+
+---
+
+## Implementation Summary
+
+**Status: COMPLETE.**
+
+### tiny-tui (`../tiny-tui` master, local only)
+- `b559e4b` — `:cursor-item` (start the cursor on a given row) and `:returns?` (an action that exits `select` even under `:on-action`).
+- `e520ef6` — `:status` (seed `select`'s status line from opts), added while resolving a codex finding so create failures surface as a status line.
+- Only my files staged; the maintainer's uncommitted `select_project.lg`/screenshot WIP was left untouched.
+
+### wtr (`tui-branch-select`)
+- `8f3c209` — dev-pinned tiny-tui to `:local/root "../tiny-tui"`.
+- `3b480c1` (+ `2e0c3c3` fmt) — silent `cmds/create!` returning `{:ok? :name :path :from}`; CLI `create` wraps it (two-line output + `--sh` preserved, verified byte-identical).
+- `565de2e` — `create` action (`c`): a `:returns?` action leaves select → `tui/input` (blank/existing-branch rejected inline) → `cmds/create!` → re-enter focused on the new worktree via `:cursor-item`. Failures surface as a status line; honors a global `--base-dir`.
+- `b32235a` — README dashboard footer + create note.
+
+### Codex review (Task 4)
+Three rounds. Round 1 [P2]: create errors silently dropped → fixed with the tiny-tui `:status` seed + threading a `{:name/:status}` result. Round 2 [P2]: `--base-dir` override ignored on dashboard create → fixed by threading `(:base-dir (:global context))` through `pick!`. Round 3: clean.
+
+### Verification
+- `lgx check` (wtr): 45 tests / 119 assertions / 0 failures; lint 0/0; fmt clean.
+- tiny-tui `lgx test`: 165 tests / 301 assertions / 0 failures. (`lgx check` lint has a **pre-existing** clj-kondo gap on `screen.lg`'s bare `(catch e …)` — present on untouched `HEAD`, no `.clj-kondo` config; my files lint clean. Not my regression.)
+- Manual (built binary, isolated sandbox, pty): footer shows `c create`; `c` → type `new-x` → submit → worktree created under `--base-dir` (`wts/repo/new-x`), dashboard re-enters with the cursor on `› new-x`, `enter` opens a shell there (`pwd` = the new worktree); a duplicate name shows `Branch 'existing' already exists` inline and creates nothing; `wtr create`/`--sh` unchanged on the CLI.
+
+### Follow-ups / notes
+- Both tiny-cli and tiny-tui are now dev-pinned to local roots; publishing them and repinning wtr to released refs remains the user-driven release step (deferred, no pushes).
