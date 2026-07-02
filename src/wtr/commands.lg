@@ -205,44 +205,54 @@
           (print stderr)))
       (os/exit 1))))
 
+(defn create!
+  "Create a worktree named `name` (branch `name`, from `from-ref` or HEAD, under
+   `base-dir-override` or the configured base) and return a result map — never
+   prints or exits (it does own ensure-config!, whose rare first-run notice is
+   acceptable).
+     {:ok? true  :name name :path wt-path :from from-ref}
+     {:ok? false :message \"<reason>\"}
+   The CLI `create` command and the dashboard both build on this."
+  [name from-ref base-dir-override]
+  (try
+    (let [main-path (git/main-worktree-path)
+          base-dir (config/ensure-config! base-dir-override main-path)
+          project (basename main-path)
+          wt-path (str base-dir "/" project "/" name)]
+      (cond
+        (git/branch-exists? name)
+        {:ok? false :message (str "Branch '" name "' already exists")}
+
+        (file-exists? wt-path)
+        {:ok? false :message (str "Directory already exists: " wt-path)}
+
+        :else
+        (do
+          (git/create-worktree! wt-path name from-ref)
+          {:ok? true :name name :path wt-path :from from-ref})))
+    (catch Exception e
+      {:ok? false
+       :message (first-nonblank-line (:stderr (ex-data e)) (ex-message e))})))
+
 (defn create
   "Create a new worktree at {base-dir}/{project}/{name} on a new branch <name>."
   [{:keys [global args opts]}]
-  (try
-    (let [name (:name args)
-          from-ref (:from opts)
-          main-path (git/main-worktree-path)
-          base-dir (config/ensure-config! (:base-dir global) main-path)
-          project (basename main-path)
-          wt-path (str base-dir "/" project "/" name)]
-
-      (when (git/branch-exists? name)
-        (error-exit (str "Branch '" name "' already exists")))
-      (when (file-exists? wt-path)
-        (error-exit (str "Directory already exists: " wt-path)))
-
-      (git/create-worktree! wt-path name from-ref)
-
-      (println "Created worktree at" wt-path)
-      (if (str/blank? (or from-ref ""))
-        (println "Branch:" name)
-        (println "Branch:" name (str "(from " from-ref ")")))
-
-      (when (:sh opts)
-        ;; Same child-process hygiene as `run`: the shell is run by wtr, not
-        ;; lgx, so clear any inherited LGX_RUN before exec'ing.
-        (os/setenv "LGX_RUN" "")
-        (trust-mise-worktree! wt-path)
-        (os/exit (apply os/exec*
-                        (run-exec-argv wt-path (user-shell)
-                                       :interactive-shell nil)))))
-    (catch Exception e
-      (let [stderr (:stderr (ex-data e))]
-        (binding [*out* *err*]
-          (if stderr
-            (print stderr)
-            (println "Error:" (ex-message e)))))
-      (os/exit 1))))
+  (let [res (create! (:name args) (:from opts) (:base-dir global))]
+    (if-not (:ok? res)
+      (error-exit (:message res))
+      (do
+        (println "Created worktree at" (:path res))
+        (if (str/blank? (or (:from res) ""))
+          (println "Branch:" (:name res))
+          (println "Branch:" (:name res) (str "(from " (:from res) ")")))
+        (when (:sh opts)
+          ;; Same child-process hygiene as `run`: the shell is run by wtr, not
+          ;; lgx, so clear any inherited LGX_RUN before exec'ing.
+          (os/setenv "LGX_RUN" "")
+          (trust-mise-worktree! (:path res))
+          (os/exit (apply os/exec*
+                          (run-exec-argv (:path res) (user-shell)
+                                         :interactive-shell nil))))))))
 
 (defn run-in-dir!
   "Exec `cmd` in worktree `dir`, replacing the current process via `os/exec*`.
