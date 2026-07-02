@@ -24,6 +24,13 @@
               :action :run
               :item "feat-x"
               :index 1}))))
+  (testing "switch action key → switch intent"
+    (is (= [:switch "feat-x"]
+           (dashboard/result->intent
+             {:type :action
+              :action :switch
+              :item "feat-x"
+              :index 1}))))
   (testing "cancel → cancel intent"
     (is (= :cancel (dashboard/result->intent {:type :cancel})))))
 
@@ -45,6 +52,15 @@
                         :read-key-fn (scripted ["r"])
                         :render-fn (fn [_] nil)})
       (is (= "main" @ran))))
+
+  (testing "the switch action key switches the highlighted worktree"
+    (let [switched (atom nil)]
+      (dashboard/pick! {:items ["main" "feat-x"]
+                        :switch-fn (fn [name] (reset! switched name))
+                        :screen false
+                        :read-key-fn (scripted ["s"])
+                        :render-fn (fn [_] nil)})
+      (is (= "main" @switched))))
 
   (testing "cancelling runs nothing"
     (let [ran (atom :untouched)]
