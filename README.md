@@ -96,12 +96,14 @@ Each command is described in detail below.
 
 Running `wtr` with no command opens an interactive dashboard of the repo's
 worktrees. Move with `↑`/`↓`. `enter` opens a shell in the highlighted worktree
-(like `wtr run <name>`) and leaves the dashboard. `s` switches the main worktree
-to it, detached (like `wtr switch <name>`); `d` removes it and its branch after
-a confirmation (like `wtr remove <name>`, a safe delete — unmerged branches are
-kept). `s` and `d` act in place and keep the dashboard open, reporting the
-result on a status line — and `d` drops the removed worktree from the list, so
-you can clean up several in a row. `q` or `esc` quits.
+(like `wtr run <name>`) and leaves the dashboard. `c` prompts for a name and
+creates a new worktree (like `wtr create <name>`), then returns with the cursor
+on it — press `enter` to jump in. `s` switches the main worktree to the
+highlighted one, detached (like `wtr switch <name>`); `d` removes it and its
+branch after a confirmation (like `wtr remove <name>`, a safe delete — unmerged
+branches are kept). `c`, `s`, and `d` act in place and keep the dashboard open,
+reporting the result on a status line — and `d` drops the removed worktree from
+the list, so you can manage several in a row. `q` or `esc` quits.
 
 ```
 $ wtr
@@ -110,7 +112,7 @@ Worktrees
 › master
   new-feat
 
-↑/↓ navigate   enter select   s switch   d remove   q quit
+↑/↓ navigate   enter select   c create   s switch   d remove   q quit
 ```
 
 With no terminal to draw on — output piped or redirected — `wtr` prints the
