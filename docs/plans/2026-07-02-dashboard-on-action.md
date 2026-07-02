@@ -72,20 +72,20 @@ dashboard → tui/select (actions: switch, remove[destructive]; :on-action handl
 - Modify: `src/wtr/commands.lg`
 - Test: `test/wtr/commands_test.lg` (existing — must stay green)
 
-- [ ] **Step 1: Add the silent helpers**
+- [x] **Step 1: Add the silent helpers**
   Add public `switch!` `[name]` and `remove!` `[name force?]` per the "Silent helper shapes" above — resolve the target, do the `git/*` side effect, build the same message strings the current commands print, and return result maps. Never `print`, never `os/exit`; catch exceptions into `{:ok? false … :message (first-nonblank-line …)}`.
 
-- [ ] **Step 2: Rewrite the CLI wrappers**
+- [x] **Step 2: Rewrite the CLI wrappers**
   Replace the bodies of `switch` and `remove` with thin wrappers: call the `!` helper (passing `(:force opts)` for remove), then `(println (:message res))` on `:ok?` else `(error-exit (:message res))`. Keep the command specs in `main.lg` untouched.
 
-- [ ] **Step 3: Verify existing tests + build**
+- [x] **Step 3: Verify existing tests + build**
   Run: `lgx test` — Expected: PASS (44 tests; `resolve-*` and `run-*` helpers unchanged).
   Run: `lgx build` — Expected: builds `bin/wtr`.
 
-- [ ] **Step 4: Smoke-check the CLI in a sandbox**
+- [x] **Step 4: Smoke-check the CLI in a sandbox**
   In a throwaway git repo with an extra worktree, confirm `./bin/wtr switch <name>` and `./bin/wtr remove <name>` still print the same success messages and that a not-found name still errors with exit 1.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `refactor: add silent switch!/remove! helpers behind the CLI commands`
 
 ---
@@ -96,25 +96,25 @@ dashboard → tui/select (actions: switch, remove[destructive]; :on-action handl
 - Modify: `src/wtr/dashboard.lg`
 - Test: `test/wtr/dashboard_test.lg`
 
-- [ ] **Step 1: Rewrite the tests**
+- [x] **Step 1: Rewrite the tests**
   In `dashboard_test.lg`: delete the `result->intent-maps-results` deftest, and replace `pick-acts-on-selection` with the four on-action wiring cases from the Testing section (enter→run-fn; s→switch-fn then quit; d+y→remove-fn; d+n→nothing). Injected `:switch-fn`/`:remove-fn` take the action event and return a `{:status …}` (or `{:items … :status …}`) map.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — `result->intent` still exists / `pick!` has no `:on-action`, so `s`/`d` don't invoke the injected fns (they still return through `select`).
 
-- [ ] **Step 3: Implement the on-action rewiring**
+- [x] **Step 3: Implement the on-action rewiring**
   In `src/wtr/dashboard.lg`: delete `run-action` and `result->intent`; add `on-switch`/`on-remove`; rewrite `pick!` to read `:run-fn`/`:switch-fn`/`:remove-fn`, build the `:on-action` handler, register `:actions [switch-action remove-action]`, `dissoc` the three fns, and run `run-fn` only on a `:select` result. Leave `show!`, `interactive?`, `run-name!`, `switch-action`, `remove-action` in place.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS.
 
-- [ ] **Step 5: Full check + codex review**
+- [x] **Step 5: Full check + codex review**
   Run: `lgx check` — Expected: fmt clean, lint 0/0, tests PASS.
   Then run the `review-with-codex` skill on the uncommitted changes and address any must-fix findings.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `feat: make the dashboard a live manager via tiny-tui :on-action`
 
 ---
@@ -124,11 +124,37 @@ dashboard → tui/select (actions: switch, remove[destructive]; :on-action handl
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Update the dashboard section**
+- [x] **Step 1: Update the dashboard section**
   Footer becomes `↑/↓ navigate   enter select   s switch   d remove   q quit` (no `r run`). Note that `enter` opens a shell in the highlighted worktree, `s`/`d` act in place and keep you in the dashboard, and `d` refreshes the list after removing.
 
-- [ ] **Step 2: Rebuild and verify in an isolated sandbox**
+- [x] **Step 2: Rebuild and verify in an isolated sandbox**
   Run: `lgx build`, then set up a throwaway git repo with 2+ worktrees and drive `./bin/wtr` under a pty (reuse the scratchpad driver). Confirm: `enter` execs a shell; `s` shows a status and stays; `[:down "d" "y"]` removes the worktree+branch and the row disappears live with a status; `[:down "d" "n" "q"]` removes nothing; `d` on the main row shows the graceful refusal and stays; `q` quits. Never run against the wtr checkout itself.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `docs: document the live-manager dashboard`
+
+---
+
+## Implementation Summary
+
+**Status: COMPLETE.**
+
+- `refactor` `397c68b` — extracted silent `cmds/switch!` `[name]` and `cmds/remove!` `[name force?]` returning `{:ok? :message …}`; the CLI `switch`/`remove` commands are now thin wrappers. Verified byte-identical CLI output in a sandbox (success messages, not-found errors, main-refusal — all exit codes preserved).
+- `feat` `5249594` — dashboard rewired to `:on-action`: `enter` opens a shell (exits), `s`/`d` act in-loop with a status line, `remove` refreshes the list, and the main-worktree remove is a graceful in-loop refusal. Dropped `run-action` and `result->intent`. Tests rewritten to on-action wiring (injected `:run-fn`/`:switch-fn`/`:remove-fn`).
+- `docs` `78464f8` — README dashboard footer is now `enter select · s switch · d remove · q quit` (no `r run`), with the live-refresh behavior described.
+
+### Codex review (Task 2, uncommitted)
+Clean — no findings; tests and lint pass.
+
+### Verification (built binary, isolated sandboxes, pty)
+- Footer: `↑/↓ navigate   enter select   s switch   d remove   q quit` (no `r run`).
+- **Remove-loop stays + refreshes**: `down d y d y q` removed *two* worktrees (+branches) in one session — impossible under the old single-shot — then quit, exit 0.
+- **Graceful main refusal**: `d y` on the `main` row prints `Refusing to remove the main worktree: main` and **stays, exit 0** (was exit 1 before).
+- Remove-cancel (`down d n q`): nothing removed.
+- Switch (`down s q`): main worktree detached at the target's tip, stayed, exit 0.
+- `enter`: opened a real shell in the highlighted worktree (correct cwd), exit 0.
+- `lgx check`: 44 tests / 114 assertions / 0 failures; lint 0/0; fmt clean.
+
+### Notes
+- `:filterable?` and multi-select were deliberately left out (`:filterable?` would shadow the `s`/`d` letter keys). `tui/input` remains available for a future `c` = create action.
+- The `remove` partial-failure note ("kept branch … use --force") now rides the transient status line rather than a printed line on exit; the list still reflects the removal.
