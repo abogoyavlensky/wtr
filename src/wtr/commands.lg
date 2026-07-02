@@ -221,15 +221,20 @@
           wt-path (str base-dir "/" project "/" name)]
       (cond
         (git/branch-exists? name)
-        {:ok? false :message (str "Branch '" name "' already exists")}
+        {:ok? false
+         :message (str "Branch '" name "' already exists")}
 
         (file-exists? wt-path)
-        {:ok? false :message (str "Directory already exists: " wt-path)}
+        {:ok? false
+         :message (str "Directory already exists: " wt-path)}
 
         :else
         (do
           (git/create-worktree! wt-path name from-ref)
-          {:ok? true :name name :path wt-path :from from-ref})))
+          {:ok? true
+           :name name
+           :path wt-path
+           :from from-ref})))
     (catch Exception e
       {:ok? false
        :message (first-nonblank-line (:stderr (ex-data e)) (ex-message e))})))
