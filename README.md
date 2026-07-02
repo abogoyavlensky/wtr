@@ -65,6 +65,9 @@ $ wtr run feature-x npm test
 # See every worktree of the project at a glance
 $ wtr list
 
+# ...or run `wtr` with no command to pick one interactively and jump in
+$ wtr
+
 # Check out the branch from the main dir, where deps and env already live
 $ wtr switch feature-x
 # ...build, test, poke around, then go back
@@ -80,6 +83,7 @@ Each command is described in detail below.
 
 | Command | Description |
 | --- | --- |
+| [`wtr`](#wtr-no-command) | Open an interactive dashboard of the repo's worktrees. |
 | [`wtr list`](#wtr-list) | List all worktrees of the current repo, marking the current one. |
 | [`wtr create <name>`](#wtr-create-name) | Create a worktree on a new branch; `--sh` jumps into a shell there. |
 | [`wtr run <name> [command...]`](#wtr-run-name-command) | Run a command (or open a shell) in a worktree from the main repo. |
@@ -87,6 +91,30 @@ Each command is described in detail below.
 | [`wtr config`](#wtr-config) | Print the config file path and its contents. |
 | [`wtr remove <name>`](#wtr-remove-name) | Remove a worktree and delete its branch. |
 | [`wtr completion <shell>`](#wtr-completion-shell) | Print the shell completion script (bash/zsh/fish). |
+
+### `wtr` (no command)
+
+Running `wtr` with no command opens an interactive dashboard of the repo's
+worktrees. Move with `↑`/`↓`; `enter` or `r` opens a shell in the selected
+worktree (the same as `wtr run <name>`); `q` or `esc` quits without doing
+anything.
+
+```
+$ wtr
+Worktrees
+
+› master
+  new-feat
+
+↑/↓ navigate   enter select   r run   q quit
+```
+
+With no terminal to draw on — output piped or redirected — `wtr` prints the
+static worktree list instead, the same as `wtr list`. `wtr --help` and
+`wtr help` still print the command help.
+
+Like `wtr run`, the interactive shell needs the built binary (`./bin/wtr`);
+under `lgx run` the dev runner buffers stdio.
 
 ### `wtr list`
 
