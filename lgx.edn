@@ -10,7 +10,7 @@
                   ;; :git/tag "v0.2.0"
                   }
         tiny-tui {:git/url "https://github.com/abogoyavlensky/tiny-tui"
-                  :git/sha "653043c350943cd108802ab168199da0dccc3e41"}}
+                  :git/sha "53ea48411f45a78a09d7fe215d32530568fe5ce0"}}
  :tasks {fmt {:doc "Format source files (available actions: fix, check; default: fix)"
               :args [{:name :action
                       :type [:enum "fix" "check"]
