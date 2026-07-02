@@ -244,6 +244,22 @@
             (println "Error:" (ex-message e)))))
       (os/exit 1))))
 
+(defn run-in-dir!
+  "Exec `cmd` in worktree `dir`, replacing the current process via `os/exec*`.
+   `cmd` is a vector; an empty one opens an interactive shell. Clears LGX_RUN,
+   classifies the command, runs the mise-trust preflight for shell-backed
+   modes, then execs and exits with the child's status. Never returns."
+  [dir cmd]
+  ;; The child is run by wtr, not by lgx — clear any inherited LGX_RUN so a
+  ;; bundled lgx-built tool we exec isn't fooled into dev-runner arg parsing.
+  (os/setenv "LGX_RUN" "")
+  (let [shell (user-shell)
+        mode (run-command-mode dir cmd)
+        argv (run-exec-argv dir shell mode cmd)]
+    (when (shell-backed-run-mode? mode)
+      (trust-mise-worktree! dir))
+    (os/exit (apply os/exec* argv))))
+
 (defn run
   "Run a command (or an interactive shell) in the named worktree.
    Resolves <name> against `git worktree list` (master/main → main worktree),
@@ -258,15 +274,7 @@
           dir (resolve-worktree-path (git/worktrees) name)]
       (when-not dir
         (error-exit (str "Worktree not found: " name)))
-      ;; The child is run by wtr, not by lgx — clear any inherited LGX_RUN so a
-      ;; bundled lgx-built tool we exec isn't fooled into dev-runner arg parsing.
-      (os/setenv "LGX_RUN" "")
-      (let [shell (user-shell)
-            mode (run-command-mode dir cmd)
-            argv (run-exec-argv dir shell mode cmd)]
-        (when (shell-backed-run-mode? mode)
-          (trust-mise-worktree! dir))
-        (os/exit (apply os/exec* argv))))
+      (run-in-dir! dir cmd))
     (catch Exception e
       (let [stderr (:stderr (ex-data e))]
         (binding [*out* *err*]
