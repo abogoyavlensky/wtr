@@ -98,7 +98,7 @@ tiny-cli and wtr are separate repos. Build and validate everything locally with 
 - Modify: `../tiny-cli/src/tiny_cli/core.cljc`
 - Test: `../tiny-cli/test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   In `core_test.cljc`, add a small app with a top-level `:run` handler (an `(fn [ctx] …)` that records `ctx` to an atom and returns a sentinel) and a global option plus `:version`. Assert via `core/parse` and `core/run-result`:
   - `core/parse app-with-run []` → `{:status :ok}` and `(:run (:command …))` is the handler; `run-result` invokes it and its `:context` carries a `:global` map.
   - a global option before the bare invocation (e.g. `["--flag" "x"]`) flows into the handler's `:global`.
@@ -106,21 +106,21 @@ tiny-cli and wtr are separate repos. Build and validate everything locally with 
   - with the `:run` handler present, `["--help"]`, `["help"]`, `["-h"]` → `{:status :help}`; `["--version"]` → `{:status :version}`.
   - `app-spec-error` rejects a non-fn `:run` (e.g. `:run 42`).
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `cd ../tiny-cli && lgx test`
   Expected: FAIL — bare invocation still returns `:help`; the non-fn `:run` guard does not exist yet.
 
-- [ ] **Step 3: Implement the root handler**
+- [x] **Step 3: Implement the root handler**
   In `core.cljc`: at the `parse` fall-through (`command` nil branch, ~line 663), dispatch `(:run app)` when set — build `context` via `(finalize-context app {} state)`, return `{:status :ok :command {:run (:run app)} :context context}` (propagating a `:error` context), else keep the existing root-help result. In `app-spec-error`, add a branch: when `(contains? app :run)` and `(not (fn? (:run app)))`, return `(error-result "App :run must be a function.")`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `cd ../tiny-cli && lgx test`
   Expected: PASS (new tests green, existing tests unaffected).
 
-- [ ] **Step 5: Document the API**
+- [x] **Step 5: Document the API**
   In `../tiny-cli/README.md` App Spec Reference, document the optional top-level `:run` — the handler run when no subcommand is named; receives the same `{:global :args :opts}` context (args/opts empty); help/version still win.
 
-- [ ] **Step 6: Full check and commit**
+- [x] **Step 6: Full check and commit**
   Run: `cd ../tiny-cli && lgx check`
   Expected: fmt clean, lint clean, `test-all` (lg + clj + bb) PASS.
   Then commit in `../tiny-cli`: `feat: add optional app-level :run root-command handler`
@@ -132,14 +132,14 @@ tiny-cli and wtr are separate repos. Build and validate everything locally with 
 **Files:**
 - Modify: `lgx.edn`
 
-- [ ] **Step 1: Switch the tiny-cli dep to a local root**
+- [x] **Step 1: Switch the tiny-cli dep to a local root**
   In `lgx.edn`, change the `tiny-cli` dep to `{:local/root "../tiny-cli"}` (comment out the `:git/url`/`:git/tag` lines to restore later).
 
-- [ ] **Step 2: Verify the dependency resolves**
+- [x] **Step 2: Verify the dependency resolves**
   Run: `lgx test`
   Expected: the project still compiles and all existing tests PASS against the local tiny-cli.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `chore: dev-pin tiny-cli to local root for dashboard work`
 
 ---
@@ -150,17 +150,17 @@ tiny-cli and wtr are separate repos. Build and validate everything locally with 
 - Modify: `src/wtr/commands.lg`
 - Test: `test/wtr/commands_test.lg` (existing — must stay green)
 
-- [ ] **Step 1: Extract the exec tail**
+- [x] **Step 1: Extract the exec tail**
   Add a public `run-in-dir! [dir cmd]` directly before `run`: `(os/setenv "LGX_RUN" "")`, then classify with `run-command-mode`, build argv with `run-exec-argv`, run `trust-mise-worktree!` for shell-backed modes, and `(os/exit (apply os/exec* argv))`. Give it a docstring: execs `cmd` (empty = interactive shell) in `dir`, replacing the process.
 
-- [ ] **Step 2: Delegate from `run`**
+- [x] **Step 2: Delegate from `run`**
   Rewrite `run`'s body to resolve `dir`, `error-exit` when not found, then call `(run-in-dir! dir cmd)`. Keep the surrounding `try`/`catch`.
 
-- [ ] **Step 3: Run tests to verify no regression**
+- [x] **Step 3: Run tests to verify no regression**
   Run: `lgx test`
   Expected: PASS — `run-command-mode` and `run-exec-argv` tests unchanged.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `refactor: extract run-in-dir! from run command`
 
 ---
@@ -171,16 +171,16 @@ tiny-cli and wtr are separate repos. Build and validate everything locally with 
 - Create: `src/wtr/dashboard.lg`
 - Test: `test/wtr/dashboard_test.lg`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   In `dashboard_test.lg`, add a `scripted` helper (returns queued messages then nil, as in tiny-tui's `core_test`). Test:
   - `result->intent` — `{:type :select :item "feat-x"}` → `[:run "feat-x"]`; `{:type :action :action :run :item "feat-x"}` → `[:run "feat-x"]`; `{:type :cancel}` → `:cancel`.
   - `pick!` wiring — call with `{:items ["main" "feat-x"] :run-fn <records to atom> :screen false :read-key-fn (scripted [:down :enter]) :render-fn (fn [_] nil)}`; assert the atom holds `"feat-x"`. A second case with `(scripted [:esc])` leaves the atom untouched (cancel runs nothing).
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — `wtr.dashboard` does not exist.
 
-- [ ] **Step 3: Implement the namespace**
+- [x] **Step 3: Implement the namespace**
   Create `src/wtr/dashboard.lg` requiring `[term]`, `[tiny-tui.core :as tui]`, `[wtr.commands :as cmds]`, `[wtr.completion :as completion]`, `[wtr.git :as git]`. Implement:
   - `interactive?` → `(some? (term/size))`.
   - `result->intent` (pure) per the tests.
@@ -188,11 +188,11 @@ tiny-cli and wtr are separate repos. Build and validate everything locally with 
   - `pick!` — merge a base `{:title "Worktrees" :item->text identity :inline? true :actions [{:id :run :key "r" :label "run"}]}` with `(dissoc opts :run-fn)`; only add `:items (completion/worktree-name-candidates nil)` to the base when `opts` does not supply `:items` (so tests skip the git call). Call `tui/select`, then `(let [intent (result->intent result)] (when-not (= :cancel intent) ((:run-fn opts run-name!) (second intent))))`.
   - `show!` `[context]` — `(if (interactive?) (try (pick!) (catch Exception _ (cmds/list context))) (cmds/list context))`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `feat: add interactive worktree dashboard namespace`
 
 ---
@@ -202,20 +202,20 @@ tiny-cli and wtr are separate repos. Build and validate everything locally with 
 **Files:**
 - Modify: `main.lg`
 
-- [ ] **Step 1: Wire the handler**
+- [x] **Step 1: Wire the handler**
   Require `[wtr.dashboard :as dashboard]` in `main.lg` and add `:run dashboard/show!` to the `app` map (alongside `:name`/`:version`/`:doc`). Optionally tweak the `run` command's name-arg `:doc` to note it can also be reached from the bare-`wtr` dashboard.
 
-- [ ] **Step 2: Build the binary**
+- [x] **Step 2: Build the binary**
   Run: `lgx build` (or the project's bundle command) to produce `bin/wtr`.
   Expected: builds without error.
 
-- [ ] **Step 3: Manual verification**
+- [x] **Step 3: Manual verification**
   Use /run or drive `./bin/wtr` directly in a repo with a couple of worktrees. Confirm:
   - `./bin/wtr` shows the inline list; arrows navigate; enter and `r` open a shell in the selected worktree; `q`/esc exit cleanly with nothing run.
   - `./bin/wtr --help` and `./bin/wtr help` still print static help.
   - `./bin/wtr | cat` prints the static worktree list (non-tty fallback).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `feat: launch worktree dashboard on bare wtr`
 
 ---
@@ -225,28 +225,63 @@ tiny-cli and wtr are separate repos. Build and validate everything locally with 
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Document bare `wtr`**
+- [x] **Step 1: Document bare `wtr`**
   Add a short section (and a Commands-table/Quickstart mention) covering: bare `wtr` opens the interactive worktree dashboard on a terminal; `↑/↓` navigate, `enter`/`r` run (open a shell in the selected worktree), `q`/esc quit; help is at `wtr --help` / `wtr help`; piped/redirected, `wtr` prints the static worktree list. Note the interactive shell needs the built binary (same caveat as `wtr run`).
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
   `docs: document the bare wtr dashboard`
 
 ---
 
-### Task 7: Publish tiny-cli and pin wtr (user-driven release)
+### Task 7: Publish tiny-cli and pin wtr (user-driven release) — DEFERRED
 
 **Files:**
 - Modify: `lgx.edn`
 
-- [ ] **Step 1: Push tiny-cli**
+Per the user's instruction ("do not push tiny-cli, do changes locally"), this
+task is intentionally **not done**. tiny-cli stays committed locally on the
+`main-command` branch, and wtr's `lgx.edn` stays on `:local/root "../tiny-cli"`.
+Do the steps below only once the user is ready to publish tiny-cli.
+
+- [ ] **Step 1: Push tiny-cli** (deferred)
   With the user's go-ahead, push the `../tiny-cli` branch/change to GitHub and merge as they prefer. Optionally cut a release tag (`cd ../tiny-cli && lgx release <version>`), or note the merged commit sha.
 
-- [ ] **Step 2: Pin wtr to the published ref**
+- [ ] **Step 2: Pin wtr to the published ref** (deferred)
   In `lgx.edn`, replace `:local/root "../tiny-cli"` with the published ref — `:git/url` + `:git/tag "v<version>"` (mirroring the current pin) or `:git/sha "<sha>"` (mirroring the tiny-tui pin).
 
-- [ ] **Step 3: Full check against the pinned dependency**
+- [ ] **Step 3: Full check against the pinned dependency** (deferred)
   Run: `lgx check`
   Expected: fmt clean, lint clean, tests PASS against the published tiny-cli.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Commit** (deferred)
   `chore: pin tiny-cli to <ref> with root-command handler`
+
+---
+
+## Implementation Summary
+
+**Status: COMPLETE** (Tasks 1–6 done and verified; Task 7 intentionally deferred — see below).
+
+### What was built
+- **tiny-cli** (`../tiny-cli`, branch `main-command`, commit `5498e91`, local only): an optional app-level `:run` root-command handler. When no subcommand is named, `parse` dispatches `(:run app)` if present, otherwise falls back to root help as before. Added an `app-spec-error` guard (`:run` must be a fn) and six portable `parse`/`run-result` tests. README App Spec Reference documents `:run`.
+- **wtr** (branch `tui-branch-select`):
+  - `chore` `6cd7b0d` — dev-pinned tiny-cli to `:local/root "../tiny-cli"`.
+  - `refactor` `9948ee3` — extracted public `cmds/run-in-dir! [dir cmd]` from `run`.
+  - `feat` `e426b7f` — `wtr.dashboard` (`interactive?`, `result->intent`, `pick!`, `show!`) + headless tests.
+  - `feat` `f65bb0b` — registered `:run dashboard/show!` on the app in `main.lg`.
+  - `docs` `660fd33` — documented bare `wtr` in the README.
+
+### Verification
+- tiny-cli `lgx check`: lg + clj + bb runners, lint, fmt — all green (287 assertions in lg).
+- wtr `lgx check`: 44 tests, 116 assertions, 0 failures; lint 0/0; fmt clean.
+- Codex second-opinion reviews: tiny-cli (Task 1) clean; wtr dashboard (Task 4) raised one P1 — "dashboard not wired into `main.lg`" — which was the scope of Task 5 (wiring) and is resolved there.
+- Manual, built binary `./bin/wtr`:
+  - Bare `wtr` under a pty: renders `Worktrees` with `master`/`new-feat`, `↑/↓` navigates, footer shows `enter select · r run · q quit`, `q` exits 0 without spawning anything.
+  - `wtr --help` / `wtr help` → static help. `wtr | cat` and bare `wtr` off a tty → static worktree list.
+
+### Deferred (Task 7)
+Per the user's instruction, tiny-cli was **not** pushed. Its change is committed locally on `main-command`; wtr consumes it via `:local/root "../tiny-cli"`. Before releasing wtr, publish tiny-cli and repin `lgx.edn` to a git ref (Task 7 steps).
+
+### Follow-ups (out of scope, by design)
+- More actions (switch, remove). These don't `exec`, so they need a refresh loop around `pick!` (v1 is single-shot: pick → exec shell).
+- Richer rows (branch label, current-worktree marker) instead of plain names.
