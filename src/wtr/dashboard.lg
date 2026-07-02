@@ -6,15 +6,10 @@
             [wtr.git :as git]))
 
 (defn interactive?
-  "True when a terminal is attached (stdin/stdout), so the inline TUI can run.
-   tiny-tui reports no size off a tty and throws if asked to render there."
+  "True when a terminal is attached (stdin/stdout), so the full-screen TUI can
+   run. tiny-tui reports no size off a tty and throws if asked to render there."
   []
   (some? (term/size)))
-
-(def ^:private run-action
-  {:id :run
-   :key "r"
-   :label "run"})
 
 (def ^:private switch-action
   {:id :switch
@@ -29,67 +24,68 @@
    :confirm-title "Remove worktree?"
    ;; Deliberately does not promise branch deletion: `wtr remove` does a safe
    ;; delete (unmerged branches are kept, detached worktrees have none). What
-   ;; actually happened is reported afterward by cmds/remove.
+   ;; actually happened is reported afterward in the status line.
    :confirm-message (fn [name] (str "Remove worktree '" name "'?"))})
-
-(defn result->intent
-  "Map a tiny-tui select result to a dashboard intent: [:run name] on enter,
-   [<action> name] for an action key (:run or :switch), or :cancel."
-  [result]
-  (case (:type result)
-    :select [:run (:item result)]
-    :action [(:action result) (:item result)]
-    ;; :cancel, and anything unexpected
-    :cancel))
 
 (defn- run-name!
   "Open a shell in the worktree named `name`, replacing the process."
   [name]
   (cmds/run-in-dir! (cmds/resolve-worktree-path (git/worktrees) name) []))
 
-(defn- switch-name!
-  "Re-point the main worktree at the worktree named `name` (via `wtr switch`)."
-  [name]
-  (cmds/switch {:args {:name name}}))
+(defn- on-switch
+  "tiny-tui :on-action handler for `s`: switch the main worktree to the
+   highlighted one, showing the result as a status line (the list is unchanged)."
+  [event]
+  (let [res (cmds/switch! (:item event))]
+    {:status (:message res)}))
 
-(defn- remove-name!
-  "Remove the worktree named `name` and clean up its branch (via `wtr remove`,
-   safe delete — an unmerged branch is kept)."
-  [name]
-  (cmds/remove {:args {:name name}
-                :opts {}}))
+(defn- on-remove
+  "tiny-tui :on-action handler for `d` (after its confirmation): safely remove
+   the highlighted worktree. On a real removal, refresh the list so the row
+   disappears; either way show the result as a status line — including the
+   graceful refusal when the target is the main worktree."
+  [event]
+  (let [res (cmds/remove! (:item event) false)]
+    (if (:removed? res)
+      {:items (completion/worktree-name-candidates nil)
+       :status (:message res)}
+      {:status (:message res)})))
 
 (defn pick!
-  "Show the full-screen worktree picker and act on the choice. `opts` are
-   merged into tiny-tui.core/select — tests inject :items, :screen false, a
-   scripted :read-key-fn, and a :render-fn; :run-fn, :switch-fn, and :remove-fn
-   override the run/switch/remove actions (defaulting to
-   run-name!/switch-name!/remove-name!). Candidates are the tab-completion
-   worktree names unless :items is supplied. Returns nil."
+  "Show the full-screen worktree manager and act on the choice. `enter` opens a
+   shell in the highlighted worktree (exiting the manager); `s`/`d` switch and
+   remove in place via tiny-tui's :on-action, keeping the manager open with a
+   status line (remove refreshes the list). `opts` are merged into
+   tiny-tui.core/select — tests inject :items, :screen false, a scripted
+   :read-key-fn, and a :render-fn; :run-fn, :switch-fn, and :remove-fn override
+   the run/switch/remove handlers (defaulting to run-name!/on-switch/on-remove).
+   Candidates are the tab-completion worktree names unless :items is supplied.
+   Returns nil."
   ([] (pick! {}))
   ([opts]
    (let [run-fn (:run-fn opts run-name!)
-         switch-fn (:switch-fn opts switch-name!)
-         remove-fn (:remove-fn opts remove-name!)
+         switch-fn (:switch-fn opts on-switch)
+         remove-fn (:remove-fn opts on-remove)
+         on-action (fn [event]
+                     (case (:action event)
+                       :switch (switch-fn event)
+                       :remove (remove-fn event)))
          base {:title "Worktrees"
                :item->text identity
-               :actions [run-action switch-action remove-action]}
+               :actions [switch-action remove-action]
+               :on-action on-action}
          base (if (contains? opts :items)
                 base
                 (assoc base :items (completion/worktree-name-candidates nil)))
          result (tui/select
-                  (merge base (dissoc opts :run-fn :switch-fn :remove-fn)))
-         intent (result->intent result)]
-     (when-not (= :cancel intent)
-       (case (first intent)
-         :run (run-fn (second intent))
-         :switch (switch-fn (second intent))
-         :remove (remove-fn (second intent))))
+                  (merge base (dissoc opts :run-fn :switch-fn :remove-fn)))]
+     (when (= :select (:type result))
+       (run-fn (:item result)))
      nil)))
 
 (defn show!
   "Root handler for a bare `wtr` invocation. On an interactive terminal, shows
-   the full-screen worktree dashboard; otherwise (piped/redirected) prints the
+   the full-screen worktree manager; otherwise (piped/redirected) prints the
    static worktree list. Any TUI failure also falls back to the list."
   [context]
   (if (interactive?)
