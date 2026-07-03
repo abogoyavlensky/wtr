@@ -29,23 +29,11 @@ Or pin a version in `.mise.toml`:
 
 ### Manual
 
-Download the archive for your platform from the
-[releases page](https://github.com/abogoyavlensky/wtr/releases), extract it,
-and put `wtr` on your `PATH`:
-
-```sh
-VERSION=0.1.0
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')   # linux | darwin
-ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-curl -sSL -o wtr.tar.gz \
-  "https://github.com/abogoyavlensky/wtr/releases/download/v${VERSION}/wtr_${VERSION}_${OS}_${ARCH}.tar.gz"
-tar -xzf wtr.tar.gz
-mv wtr ~/.local/bin/
-```
-
-Releases are created by pushing a `v*` tag; each one ships binaries for
+Releases are created by pushing a tags; each one ships binaries for
 linux/amd64, linux/arm64, darwin/amd64 and darwin/arm64 with a
-`checksums.txt`.
+`checksums.txt`. [Download](scripts/install.sh) the archive for your platform from the
+[releases page](https://github.com/abogoyavlensky/wtr/releases), extract it,
+and put `wtr` on your `PATH`.
 
 ## Quickstart
 
@@ -105,15 +93,7 @@ branches are kept). `c`, `s`, and `d` act in place and keep the dashboard open,
 reporting the result on a status line — and `d` drops the removed worktree from
 the list, so you can manage several in a row. `q` or `esc` quits.
 
-```
-$ wtr
-Worktrees
-
-› master
-  new-feat
-
-↑/↓ navigate   enter select   c create   s switch   d remove   q quit
-```
+![Interactive mode](./docs/images/interactive_mode.png)
 
 With no terminal to draw on — output piped or redirected — `wtr` prints the
 static worktree list instead, the same as `wtr list`. `wtr --help` and
