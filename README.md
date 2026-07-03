@@ -4,6 +4,41 @@
 repo, it frees you from remembering absolute paths, runs a command in any
 worktree, and checks a worktree's state in detached HEAD.
 
+## Quickstart
+
+A usual workflow: one task, one worktree, one branch.
+
+```bash
+# Install wtr on macOS or linux:
+brew install abogoyavlensky/tap/wtr
+
+# Start a task in its own worktree and jump straight into a shell there
+$ wtr create --sh feature-x
+Created worktree at /Users/andrew/Projects/worktrees/wtr/feature-x
+Branch: feature-x
+
+# ...work in the worktree: run an agent, edit, commit. `exit` returns you.
+
+# Meanwhile, from the main worktree: run one-off commands without cd
+$ wtr run feature-x npm test
+
+# See every worktree of the project at a glance
+$ wtr list
+
+# ...or run `wtr` with no command to pick one interactively and jump in
+$ wtr
+
+# Check out the branch from the main dir, where deps and env already live
+$ wtr switch feature-x
+# ...build, test, poke around, then go back
+$ wtr switch master
+
+# Once the work is merged, clean up the worktree and its branch
+$ wtr remove feature-x
+```
+
+Each command is described in detail [below](#commands).
+
 ## Installation
 
 ### With [Homebrew](https://brew.sh)
@@ -32,38 +67,6 @@ Or pin a version in `.mise.toml`:
 [Download](scripts/install.sh) the archive for your platform from the
 [releases page](https://github.com/abogoyavlensky/wtr/releases), extract it,
 and put `wtr` on your `PATH`.
-
-## Quickstart
-
-A usual workflow: one task, one worktree, one branch.
-
-```bash
-# Start a task in its own worktree and jump straight into a shell there
-$ wtr create --sh feature-x
-Created worktree at /Users/andrew/Projects/worktrees/wtr/feature-x
-Branch: feature-x
-
-# ...work in the worktree: run an agent, edit, commit. `exit` returns you.
-
-# Meanwhile, from the main worktree: run one-off commands without cd
-$ wtr run feature-x npm test
-
-# See every worktree of the project at a glance
-$ wtr list
-
-# ...or run `wtr` with no command to pick one interactively and jump in
-$ wtr
-
-# Check out the branch from the main dir, where deps and env already live
-$ wtr switch feature-x
-# ...build, test, poke around, then go back
-$ wtr switch master
-
-# Once the work is merged, clean up the worktree and its branch
-$ wtr remove feature-x
-```
-
-Each command is described in detail below.
 
 ## Commands
 
