@@ -29,9 +29,7 @@ Or pin a version in `.mise.toml`:
 
 ### Manual
 
-Releases are created by pushing a tags; each one ships binaries for
-linux/amd64, linux/arm64, darwin/amd64 and darwin/arm64 with a
-`checksums.txt`. [Download](scripts/install.sh) the archive for your platform from the
+[Download](scripts/install.sh) the archive for your platform from the
 [releases page](https://github.com/abogoyavlensky/wtr/releases), extract it,
 and put `wtr` on your `PATH`.
 
