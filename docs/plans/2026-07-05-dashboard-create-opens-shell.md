@@ -1,4 +1,4 @@
-# Dashboard Create Opens a Shell Implementation Plan
+# Dashboard Create Opens a Shell Implementation Plan — ✅ COMPLETED
 
 > **For agentic workers:** Use executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -63,43 +63,57 @@ Headless tests drive `pick!` with `:screen false` and scripted keys (`:read-key-
 - Modify: `src/wtr/dashboard.lg`
 - Test: `test/wtr/dashboard_test.lg`
 
-- [ ] **Step 1: Update the failing test**
+- [x] **Step 1: Update the failing test**
   In `test/wtr/dashboard_test.lg`, rewrite the first `pick-create` case (currently "c creates, then the cursor lands on the new worktree for enter"): rename it to "c creates, then opens a shell in the new worktree", change the scripted keys from `["c" :enter]` to `["c"]`, keep `:create-fn (fn [] (reset! created true) {:name "new-wt"})` and `:run-fn (fn [name] (reset! ran name))`, and assert `@created` is `true` and `@ran` is `"new-wt"`. Leave the "cancelling create…" and "a failed create…" cases unchanged.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
   Run: `lgx test`
-  Expected: FAIL — under the current code `["c"]` alone re-enters the loop, hits EOF, and never calls `run-fn`, so `@ran` is `nil` (asserted `"new-wt"`).
+  Expected: FAIL — under the current code `["c"]` alone re-enters the loop, hits EOF, and never calls `run-fn`, so `@ran` is `nil` (asserted `"new-wt"`). ✓ Failed with `FAIL (= new-wt (deref ran))`.
 
-- [ ] **Step 3: Implement the create-opens-shell change**
+- [x] **Step 3: Implement the create-opens-shell change**
   In `src/wtr/dashboard.lg`:
   - `pick!`: change the create `cond` branch so a successful create (`{:name …}`) calls `(run-fn (:name r))` and a non-success (`{:status …}` failure or `{}` cancel) does `(recur (:status r))`. Change the loop to `(loop [status nil] …)` and remove the `:cursor-item` entry from the `base` map.
   - `pick!` docstring: replace "`c` … creates a worktree, and re-enters focused on it" with wording that `c` prompts for a name, creates a worktree, and opens a shell in it (like `enter`).
   - `create-action` comment: replace the `:returns?` note about re-entering focused on the new worktree with "exits select so we can prompt for a name, create the worktree, then open a shell in it".
   - `create-name!` docstring: change the success line from "the dashboard re-enters focused there" to "the dashboard opens a shell there".
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
   Run: `lgx test`
-  Expected: PASS (all dashboard tests, including the unchanged cancel/failure cases).
+  Expected: PASS (all dashboard tests, including the unchanged cancel/failure cases). ✓ 45 tests / 119 assertions / 0 failures.
 
-- [ ] **Step 5: Run all checks**
+- [x] **Step 5: Run all checks**
   Run: `lgx check`
-  Expected: green — fmt clean, lint 0/0 on touched files, all tests pass.
+  Expected: green — fmt clean, lint 0/0 on touched files, all tests pass. ✓ fmt clean; lint 0 errors / 0 warnings; 45/119/0.
 
-- [ ] **Step 6: Commit**
-  `git commit -m "feat: dashboard create action opens a shell in the new worktree"`
+- [x] **Step 6: Commit** — codex review checkpoint passed (no findings)
+  `git commit -m "feat: dashboard create action opens a shell in the new worktree"` ✓ `36a497f`
 
 ## Task 2: Verify end-to-end
 
 **Files:** none (build + manual/pty drive; use the /verify skill).
 
-- [ ] **Step 1: Build the binary**
+- [x] **Step 1: Build the binary**
   Run: `lgx build`
-  Expected: `bin/wtr` built with no errors.
+  Expected: `bin/wtr` built with no errors. ✓ Built `bin/wtr`.
 
-- [ ] **Step 2: Drive the create flow (never against the wtr checkout)**
+- [x] **Step 2: Drive the create flow (never against the wtr checkout)**
   In a throwaway git repo, run `./bin/wtr`, press `c`, type a new worktree name, and submit.
-  Expected: a shell opens **in the new worktree** — `pwd` shows the new worktree path and `git worktree list` (from another shell) lists it. Typing `exit` returns to the original terminal, not the dashboard.
+  Expected: a shell opens **in the new worktree** — `pwd` shows the new worktree path and `git worktree list` (from another shell) lists it. Typing `exit` returns to the original terminal, not the dashboard. ✓ Drove via pexpect against a throwaway repo: `c` → `feat-x` → shell opened with cwd `…/wt/proj/feat-x`; worktree created and listed; `exit` terminated wtr (did not return to the list).
 
-- [ ] **Step 3: Spot-check the edge cases**
+- [x] **Step 3: Spot-check the edge cases**
   In the same throwaway repo: pressing `c` then esc returns to the list unchanged; entering an existing branch name at the prompt shows the inline validator error; `s`/`d` still act in place and stay in the list.
-  Expected: all behave as described; no raw-mode/hidden-cursor artifacts after the shell opens or after exit.
+  Expected: all behave as described; no raw-mode/hidden-cursor artifacts after the shell opens or after exit. ✓ Cancel (esc) returned to the list; quit exited cleanly; submitting an existing branch name showed "already exists" and blocked the create (no phantom worktree). `s`/`d` in-loop behavior is unchanged by this commit and covered by the passing `pick-acts-in-loop` tests.
+
+---
+
+## Summary
+
+**Status:** Complete. Shipped in commit `36a497f`.
+
+**What changed:** In `src/wtr/dashboard.lg`, the bare-`wtr` dashboard's create action (`c`) now opens a shell in the newly created worktree instead of re-entering the list focused on it. `pick!`'s create branch calls `run-fn` on success (the same path `enter` takes — routed through `run-in-dir!`, including the mise-trust preflight, matching `wtr create --sh`), and re-enters the list only on a post-validation failure (showing the error status) or cancel. The now-unused `cursor-item` loop variable and the `:cursor-item` key were dropped. Docstrings/comments on `pick!`, `create-action`, and `create-name!` were updated. The first `pick-create` test case now drives `["c"]` alone (no trailing `:enter`) and asserts the shell opens on the new worktree; cancel/failure cases were unchanged.
+
+**Scope note:** The change stayed entirely wtr-side — no tiny-tui bump and no inline-session/rendering change. Because opening a shell `exec`s (replacing the process), the TUI must fully tear down before the exec; the existing full-screen `:returns? true` structure already does this, and an inline session could not have cleaned up after the exec.
+
+**Verification:** `lgx check` green (fmt clean, lint 0/0, 45 tests / 119 assertions / 0 failures). End-to-end pexpect drive against a throwaway repo confirmed: `c` → name → a shell opened with cwd on the new worktree, the worktree was created and listed, and `exit` terminated wtr (no return to the dashboard). Edge cases confirmed: esc cancels back to the list, an existing branch name is blocked at the prompt with "already exists" (no phantom worktree), quit exits cleanly.
+
+**Issues encountered:** None. Codex second-opinion review returned no findings. (Observation, not a regression: the name-prompt validator fires on submit rather than per-keystroke — pre-existing `tui/input` behavior, untouched here.)
