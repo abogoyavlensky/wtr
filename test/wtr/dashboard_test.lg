@@ -58,14 +58,14 @@
       (is (= :untouched @removed)))))
 
 (deftest pick-create
-  (testing "c creates, then the cursor lands on the new worktree for enter"
+  (testing "c creates, then opens a shell in the new worktree"
     (let [created (atom false)
           ran (atom nil)]
       (dashboard/pick! {:items ["main" "feat-x" "new-wt"]
                         :create-fn (fn [] (reset! created true) {:name "new-wt"})
                         :run-fn (fn [name] (reset! ran name))
                         :screen false
-                        :read-key-fn (scripted ["c" :enter])
+                        :read-key-fn (scripted ["c"])
                         :render-fn (fn [_] nil)})
       (is (= true @created))
       (is (= "new-wt" @ran))))

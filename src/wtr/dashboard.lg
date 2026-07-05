@@ -13,8 +13,8 @@
   (some? (term/size)))
 
 (def ^:private create-action
-  ;; :returns? exits select so we can prompt for a name outside the loop, then
-  ;; re-enter focused on the new worktree.
+  ;; :returns? exits select so we can prompt for a name, create the worktree,
+  ;; then open a shell in it — all outside select's raw-mode span.
   {:id :create
    :key "c"
    :label "create"
@@ -76,7 +76,7 @@
 (defn- create-name!
   "Prompt for a name and create the worktree under `base-dir` (the --base-dir
    override, or nil for the configured base). Returns a map:
-     {:name <new-name>}  on success — the dashboard re-enters focused there,
+     {:name <new-name>}  on success — the dashboard opens a shell there,
      {:status <error>}   on a post-validation failure — shown as a status line,
      {}                  on cancel."
   [base-dir]
@@ -91,7 +91,7 @@
   "Show the full-screen worktree manager and act on the choice. `enter` opens a
    shell in the highlighted worktree (exiting the manager); `s`/`d` switch and
    remove in place via tiny-tui's :on-action; `c` leaves select to prompt for a
-   name, creates a worktree, and re-enters focused on it. `opts` are merged into
+   name, creates a worktree, and opens a shell in it (like `enter`). `opts` are merged into
    tiny-tui.core/select — tests inject :items, :screen false, a scripted
    :read-key-fn, and a :render-fn; :run-fn, :switch-fn, :remove-fn, and
    :create-fn override the handlers (defaulting to
@@ -109,13 +109,11 @@
                        :remove (remove-fn event)))
          select-opts (dissoc opts :run-fn :switch-fn :remove-fn :create-fn
                              :base-dir)]
-     (loop [cursor-item nil
-            status nil]
+     (loop [status nil]
        (let [base {:title "Worktrees"
                    :item->text identity
                    :actions [create-action switch-action remove-action]
                    :on-action on-action
-                   :cursor-item cursor-item
                    :status status}
              base (if (contains? opts :items)
                     base
@@ -126,7 +124,10 @@
            (run-fn (:item result))
 
            (and (= :action (:type result)) (= :create (:action result)))
-           (let [r (create-fn)] (recur (:name r) (:status r)))
+           (let [r (create-fn)]
+             (if (:name r)
+               (run-fn (:name r))     ; created → open a shell (execs, never returns)
+               (recur (:status r))))  ; failure → status; cancel → nil (clean re-entry)
 
            :else nil))))))
 
