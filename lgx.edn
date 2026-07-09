@@ -5,7 +5,7 @@
  :lg-version "1.11.1"
  :deps {tiny-cli {;:local/root "../tiny-cli"
                   :git/url "https://github.com/abogoyavlensky/tiny-cli"
-                  :git/tag "v0.2.1"}
+                  :git/tag "v0.2.2"}
         tiny-tui {;:local/root "../tiny-tui"
                   :git/url "https://github.com/abogoyavlensky/tiny-tui"
                   :git/tag "v0.1.1"}}

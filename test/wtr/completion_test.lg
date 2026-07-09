@@ -71,9 +71,11 @@
     (is (= ["--base-dir" "--force" "--help"]
            (tc/candidates iapp ["remove"] "-"))))
 
-  (testing "no flags after a positional (tiny-cli rejects options there)"
-    (is (= [] (tc/candidates iapp ["remove" "feat-x"] "-")))
-    (is (= [] (tc/candidates iapp ["switch" "feat-x"] "-"))))
+  (testing "flags still complete after a positional on a non-variadic command"
+    (is (= ["--base-dir" "--force" "--help"]
+           (tc/candidates iapp ["remove" "feat-x"] "-")))
+    (is (= ["--base-dir" "--help"]
+           (tc/candidates iapp ["switch" "feat-x"] "-"))))
 
   (testing "a flag awaiting its value completes nothing"
     (is (= [] (tc/candidates iapp ["--base-dir"] "")))
